@@ -8,6 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/manumura/go-auth-rbac-starter/api"
+	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -19,24 +22,38 @@ var interruptSignals = []os.Signal{
 }
 
 func main() {
+	conf, err := config.LoadConfig(".env")
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot load config")
+	}
+
+	if conf.Environment == "dev" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
+
 	log.Info().Msg("starting main")
 
 	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
 	defer stop()
 	waitGroup, ctx := errgroup.WithContext(ctx)
 
-	runApiServer(ctx, waitGroup)
+	runApiServer(ctx, waitGroup, conf)
+
+	err = waitGroup.Wait()
+	if err != nil {
+		log.Fatal().Err(err).Msg("error from wait group")
+	}
 }
 
 func runApiServer(ctx context.Context,
-	waitGroup *errgroup.Group) {
-	server, err := api.NewServer(config, store)
+	waitGroup *errgroup.Group, conf config.Config) {
+	server, err := api.NewServer(conf)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create HTTP server")
 	}
 
 	waitGroup.Go(func() error {
-		log.Info().Msgf("start HTTP server at %s", config.HTTPServerAddress)
+		log.Info().Msgf("start HTTP server at %s", conf.HTTPServerAddress)
 
 		err = server.Start()
 		if err != nil {
