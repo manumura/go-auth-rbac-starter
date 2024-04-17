@@ -42,28 +42,30 @@ func (server *Server) setupRouter() *gin.Engine {
 	// 		middleware.Map(ErrUnauthorized).ToResponse(unauthorizedErrorHandler),
 	// 	))
 
+	errorToResponseMap := middleware.MapErrorsToResponse(
+		middleware.ErrorMap{
+			Errors:   []error{ErrNotFound},
+			Response: notFoundErrorHandler,
+		},
+		middleware.ErrorMap{
+			Errors:   []error{ErrAlreadyExists},
+			Response: badRequestErrorHandler,
+		},
+		middleware.ErrorMap{
+			Errors:   []error{ErrUnauthorized},
+			Response: unauthorizedErrorHandler,
+		},
+	)
 	router.Use(
 		middleware.ErrorHandlerV2(
-			middleware.MapErrorsToResponse(
-				middleware.ErrMapping{
-					Errors:   []error{ErrNotFound},
-					Response: notFoundErrorHandler,
-				},
-				middleware.ErrMapping{
-					Errors:   []error{ErrAlreadyExists},
-					Response: badRequestErrorHandler,
-				},
-				middleware.ErrMapping{
-					Errors:   []error{ErrUnauthorized},
-					Response: unauthorizedErrorHandler,
-				},
-			),
+			errorToResponseMap,
 		))
+	// TODO test recovery middleware
 	router.Use(gin.CustomRecovery(uncaughtErrorHandler))
 
-	v1Router := router.Group("/api/v1")
-	v1Router.GET("/index", server.index)
-	v1Router.GET("/test", server.test)
+	apiV1Router := router.Group("/api/v1")
+	apiV1Router.GET("/index", server.index)
+	apiV1Router.GET("/test", server.test)
 
 	return router
 }

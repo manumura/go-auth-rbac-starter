@@ -7,15 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type errorMap map[error]func(ctx *gin.Context, err error)
+type errorToResponseMap map[error]func(ctx *gin.Context, err error)
 
-type ErrMapping struct {
+type ErrorMap struct {
 	Errors   []error
 	Response func(ctx *gin.Context, err error)
 }
 
-func MapErrorsToResponse(errMappings ...ErrMapping) errorMap {
-	m := make(errorMap)
+func MapErrorsToResponse(errMappings ...ErrorMap) errorToResponseMap {
+	m := make(errorToResponseMap)
 
 	for _, errorMapping := range errMappings {
 		response := errorMapping.Response
@@ -28,7 +28,7 @@ func MapErrorsToResponse(errMappings ...ErrMapping) errorMap {
 	return m
 }
 
-func ErrorHandlerV2(errMap errorMap) gin.HandlerFunc {
+func ErrorHandlerV2(errMap errorToResponseMap) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		context.Next()
 
