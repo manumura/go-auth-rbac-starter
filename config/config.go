@@ -5,6 +5,7 @@ import "github.com/spf13/viper"
 type Config struct {
 	Environment       string `mapstructure:"ENVIRONMENT"`
 	HTTPServerAddress string `mapstructure:"HTTP_SERVER_ADDRESS"`
+	GRPCServerAddress string `mapstructure:"GRPC_SERVER_ADDRESS"`
 }
 
 // LoadConfig reads configuration from file or environment variables.

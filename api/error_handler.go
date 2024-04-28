@@ -5,12 +5,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-errors/errors"
+	"github.com/manumura/go-auth-rbac-starter/middleware"
 )
 
 var (
-	ErrNotFound      = errors.New("resource could not be found")
-	ErrAlreadyExists = errors.New("resource already exists")
-	ErrUnauthorized  = errors.New("username or password is invalid")
+	ErrNotFound        = errors.New("resource could not be found")
+	ErrAlreadyExists   = errors.New("resource already exists")
+	ErrInvalidPassword = errors.New("username or password is invalid")
+)
+
+var errorToResponseMap = middleware.MapErrorsToResponse(
+	middleware.ErrorMap{
+		Errors:   []error{ErrNotFound},
+		Response: notFoundErrorHandler,
+	},
+	middleware.ErrorMap{
+		Errors:   []error{ErrAlreadyExists},
+		Response: badRequestErrorHandler,
+	},
+	middleware.ErrorMap{
+		Errors:   []error{ErrInvalidPassword},
+		Response: unauthorizedErrorHandler,
+	},
 )
 
 func notFoundErrorHandler(ctx *gin.Context, err error) {
