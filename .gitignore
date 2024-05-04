@@ -10,5 +10,7 @@
 
 *.env*
 !.env.template
+
 .history/
+tmp/
 *.db

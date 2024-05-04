@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
+	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
 type HttpServer struct {
@@ -41,8 +42,12 @@ func (server *HttpServer) setupRouter() *gin.Engine {
 	// TODO test recovery middleware
 	router.Use(gin.CustomRecovery(uncaughtErrorHandler))
 
+	userHandler := user.NewUserHandler()
+
 	apiV1Router := router.Group("/api/v1")
 	apiV1Router.GET("/index", server.index)
+	apiV1Router.POST("/register", userHandler.Register)
+	// TODO remove test
 	apiV1Router.GET("/test", server.test)
 
 	return router

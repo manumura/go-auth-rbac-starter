@@ -1,4 +1,4 @@
-package api
+package gapi
 
 import (
 	"github.com/manumura/go-auth-rbac-starter/config"

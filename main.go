@@ -11,12 +11,14 @@ import (
 
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/gapi"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/pb"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 var interruptSignals = []os.Signal{
@@ -88,7 +90,7 @@ func runGrpcServer(
 	waitGroup *errgroup.Group,
 	conf config.Config,
 ) {
-	server, err := api.NewGrpcServer(conf)
+	server, err := gapi.NewGrpcServer(conf)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create server")
 	}
@@ -97,8 +99,7 @@ func runGrpcServer(
 	// gprcStreamLogger := grpc.StreamInterceptor(middleware.GrpcStreamLogger)
 	grpcServer := grpc.NewServer(gprcUnaryLogger)
 	pb.RegisterUserEventServer(grpcServer, server)
-	// TODO
-	// reflection.Register(grpcServer)
+	reflection.Register(grpcServer)
 
 	listener, err := net.Listen("tcp", conf.GRPCServerAddress)
 	if err != nil {

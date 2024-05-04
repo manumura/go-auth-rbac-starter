@@ -14,7 +14,6 @@ func (server *HttpServer) index(ctx *gin.Context) {
 	})
 }
 
-// TODO remove test
 func (server *HttpServer) test(ctx *gin.Context) {
 	test, ok := ctx.GetQuery("test")
 	if !ok {
