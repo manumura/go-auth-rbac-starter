@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
@@ -31,22 +33,25 @@ func NewHttpServer(config config.Config) (*HttpServer, error) {
 	return server, nil
 }
 
-// TODO https://www.franken-ui.dev/
 func (server *HttpServer) setupRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.Use(
 		middleware.ErrorHandlerV2(
-			errorToResponseMap,
+			middleware.ErrorToResponseMap,
 		))
 	// TODO test recovery middleware
-	router.Use(gin.CustomRecovery(uncaughtErrorHandler))
+	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 
-	userHandler := user.NewUserHandler()
+	userService := user.NewUserService()
+	userHandler := user.NewUserHandler(&userService)
+	authenticationHandler := authentication.NewAuthenticationHandler(&userService)
 
 	apiV1Router := router.Group("/api/v1")
 	apiV1Router.GET("/index", server.index)
 	apiV1Router.POST("/register", userHandler.Register)
+	apiV1Router.POST("/login", authenticationHandler.Login)
+
 	// TODO remove test
 	apiV1Router.GET("/test", server.test)
 

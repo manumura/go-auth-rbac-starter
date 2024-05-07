@@ -5,16 +5,36 @@ import (
 	"reflect"
 
 	"github.com/gin-gonic/gin"
+	"github.com/manumura/go-auth-rbac-starter/exception"
 )
 
 type errorToResponseMap map[error]func(ctx *gin.Context, err error)
 
-type ErrorMap struct {
+type errorMap struct {
 	Errors   []error
 	Response func(ctx *gin.Context, err error)
 }
 
-func MapErrorsToResponse(errMappings ...ErrorMap) errorToResponseMap {
+var ErrorToResponseMap = mapErrorsToResponse(
+	errorMap{
+		Errors:   []error{exception.ErrNotFound},
+		Response: exception.NotFoundErrorHandler,
+	},
+	errorMap{
+		Errors:   []error{exception.ErrAlreadyExists, exception.ErrInvalidRequest},
+		Response: exception.BadRequestErrorHandler,
+	},
+	errorMap{
+		Errors:   []error{exception.ErrInvalidPassword},
+		Response: exception.UnauthorizedErrorHandler,
+	},
+	errorMap{
+		Errors:   []error{exception.ErrInternal, exception.ErrCannotCreateUser},
+		Response: exception.InternalServerErrorHandler,
+	},
+)
+
+func mapErrorsToResponse(errMappings ...errorMap) errorToResponseMap {
 	m := make(errorToResponseMap)
 
 	for _, errorMapping := range errMappings {

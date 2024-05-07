@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/manumura/go-auth-rbac-starter/exception"
 )
 
 func (server *HttpServer) index(ctx *gin.Context) {
@@ -17,12 +18,12 @@ func (server *HttpServer) index(ctx *gin.Context) {
 func (server *HttpServer) test(ctx *gin.Context) {
 	test, ok := ctx.GetQuery("test")
 	if !ok {
-		ctx.Error(ErrNotFound)
+		ctx.Error(exception.ErrNotFound)
 		return
 	}
 
 	if test == "error" {
-		ctx.Error(ErrAlreadyExists)
+		ctx.Error(exception.ErrAlreadyExists)
 		return
 	}
 
