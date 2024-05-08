@@ -29,7 +29,7 @@ var ErrorToResponseMap = mapErrorsToResponse(
 		Response: exception.UnauthorizedErrorHandler,
 	},
 	errorMap{
-		Errors:   []error{exception.ErrInternal, exception.ErrCannotCreateUser},
+		Errors:   []error{exception.ErrInternalServer, exception.ErrCannotCreateUser},
 		Response: exception.InternalServerErrorHandler,
 	},
 )

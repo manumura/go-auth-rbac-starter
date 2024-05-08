@@ -22,7 +22,7 @@ func NewHttpServer(config config.Config) (*HttpServer, error) {
 		config: config,
 	}
 
-	router := server.setupRouter()
+	router := server.setupRouter(config)
 
 	httpServer := &http.Server{
 		Addr:    config.HTTPServerAddress,
@@ -33,7 +33,7 @@ func NewHttpServer(config config.Config) (*HttpServer, error) {
 	return server, nil
 }
 
-func (server *HttpServer) setupRouter() *gin.Engine {
+func (server *HttpServer) setupRouter(config config.Config) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(
@@ -45,7 +45,7 @@ func (server *HttpServer) setupRouter() *gin.Engine {
 
 	userService := user.NewUserService()
 	userHandler := user.NewUserHandler(&userService)
-	authenticationHandler := authentication.NewAuthenticationHandler(&userService)
+	authenticationHandler := authentication.NewAuthenticationHandler(&userService, config)
 
 	apiV1Router := router.Group("/api/v1")
 	apiV1Router.GET("/index", server.index)
