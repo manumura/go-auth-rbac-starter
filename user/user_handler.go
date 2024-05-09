@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/pb"
+	"github.com/rs/zerolog/log"
 )
 
 // user events channel
@@ -15,11 +17,13 @@ var UserEventsChannel = make(chan *pb.Event)
 type UserHandler struct {
 	// https://stackoverflow.com/questions/28014591/nameless-fields-in-go-structs
 	UserService
+	*validator.Validate
 }
 
-func NewUserHandler(service *UserService) *UserHandler {
+func NewUserHandler(service *UserService, validate *validator.Validate) *UserHandler {
 	return &UserHandler{
 		*service,
+		validate,
 	}
 }
 
@@ -33,7 +37,12 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	// TODO validation
+	err := h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.Error(exception.ErrInvalidRequest)
+		return
+	}
 
 	user, err := h.Create(ctx, CreateUserRequest{
 		Name:     req.Name,

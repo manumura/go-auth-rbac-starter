@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
@@ -17,12 +18,12 @@ type HttpServer struct {
 	httpServer *http.Server
 }
 
-func NewHttpServer(config config.Config) (*HttpServer, error) {
+func NewHttpServer(config config.Config, validate *validator.Validate) (*HttpServer, error) {
 	server := &HttpServer{
 		config: config,
 	}
 
-	router := server.setupRouter(config)
+	router := server.setupRouter(config, validate)
 
 	httpServer := &http.Server{
 		Addr:    config.HTTPServerAddress,
@@ -33,7 +34,7 @@ func NewHttpServer(config config.Config) (*HttpServer, error) {
 	return server, nil
 }
 
-func (server *HttpServer) setupRouter(config config.Config) *gin.Engine {
+func (server *HttpServer) setupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(
@@ -44,8 +45,8 @@ func (server *HttpServer) setupRouter(config config.Config) *gin.Engine {
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 
 	userService := user.NewUserService()
-	userHandler := user.NewUserHandler(&userService)
-	authenticationHandler := authentication.NewAuthenticationHandler(&userService, config)
+	userHandler := user.NewUserHandler(&userService, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(&userService, config, validate)
 
 	apiV1Router := router.Group("/api/v1")
 	apiV1Router.GET("/index", server.index)

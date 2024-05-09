@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jaevor/go-nanoid"
 	"github.com/manumura/go-auth-rbac-starter/config"
@@ -16,18 +17,28 @@ import (
 type AuthenticationHandler struct {
 	user.UserService
 	config.Config
+	*validator.Validate
 }
 
-func NewAuthenticationHandler(service *user.UserService, conf config.Config) *AuthenticationHandler {
+func NewAuthenticationHandler(service *user.UserService, conf config.Config, validate *validator.Validate) *AuthenticationHandler {
 	return &AuthenticationHandler{
 		*service,
 		conf,
+		validate,
 	}
 }
 
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.Error(exception.ErrInvalidRequest)
+		return
+	}
+
+	// returns nil or ValidationErrors ( []FieldError )
+	err := h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
 		ctx.Error(exception.ErrInvalidRequest)
 		return
 	}

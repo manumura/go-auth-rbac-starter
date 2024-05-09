@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/gapi"
@@ -39,12 +40,15 @@ func main() {
 
 	log.Info().Msg("starting main")
 
+	// use a single instance of Validate, it caches struct info
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
 	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
 	defer stop()
 	waitGroup, ctx := errgroup.WithContext(ctx)
 
 	runGrpcServer(ctx, waitGroup, conf)
-	runHttpServer(ctx, waitGroup, conf)
+	runHttpServer(ctx, waitGroup, conf, validate)
 
 	err = waitGroup.Wait()
 	if err != nil {
@@ -53,8 +57,9 @@ func main() {
 }
 
 func runHttpServer(ctx context.Context,
-	waitGroup *errgroup.Group, conf config.Config) {
-	server, err := api.NewHttpServer(conf)
+	waitGroup *errgroup.Group, conf config.Config,
+	validate *validator.Validate) {
+	server, err := api.NewHttpServer(conf, validate)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create HTTP server")
 	}
