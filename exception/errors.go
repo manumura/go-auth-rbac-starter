@@ -1,11 +1,10 @@
 package exception
 
-import "errors"
+import (
+	"errors"
 
-// TODO improve with dynamic error messages
-// func New(message string) error {
-// 	return errors.New(message)
-// }
+	"github.com/gin-gonic/gin"
+)
 
 var (
 	ErrNotFound         = errors.New("resource not found")
@@ -15,3 +14,7 @@ var (
 	ErrCannotCreateUser = errors.New("cannot create user")
 	ErrInternalServer   = errors.New("internal server error")
 )
+
+func ErrorResponse(err error) gin.H {
+	return gin.H{"error": err.Error()}
+}

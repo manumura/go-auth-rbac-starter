@@ -9,7 +9,6 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
-	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
@@ -37,16 +36,11 @@ func NewHttpServer(config config.Config, validate *validator.Validate) (*HttpSer
 func (server *HttpServer) setupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	router := gin.Default()
 
-	router.Use(
-		middleware.ErrorHandlerV2(
-			middleware.ErrorToResponseMap,
-		))
-	// TODO test recovery middleware
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 
 	userService := user.NewUserService()
-	userHandler := user.NewUserHandler(&userService, validate)
-	authenticationHandler := authentication.NewAuthenticationHandler(&userService, config, validate)
+	userHandler := user.NewUserHandler(userService, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(userService, config, validate)
 
 	apiV1Router := router.Group("/api/v1")
 	apiV1Router.GET("/index", server.index)

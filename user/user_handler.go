@@ -20,9 +20,9 @@ type UserHandler struct {
 	*validator.Validate
 }
 
-func NewUserHandler(service *UserService, validate *validator.Validate) *UserHandler {
-	return &UserHandler{
-		*service,
+func NewUserHandler(service UserService, validate *validator.Validate) UserHandler {
+	return UserHandler{
+		service,
 		validate,
 	}
 }
@@ -33,14 +33,14 @@ var Users = []User{}
 func (h *UserHandler) Register(ctx *gin.Context) {
 	var req RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.Error(exception.ErrInvalidRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest))
 		return
 	}
 
 	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.Error(exception.ErrInvalidRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err))
 		return
 	}
 
@@ -52,7 +52,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		ctx.Error(exception.ErrInvalidRequest)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
 		return
 	}
 

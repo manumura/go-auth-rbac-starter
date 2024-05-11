@@ -13,27 +13,3 @@ func UncaughtErrorHandler(ctx *gin.Context, err any) {
 		"error": goErr.Error(),
 	})
 }
-
-func InternalServerErrorHandler(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusInternalServerError, gin.H{
-		"error": err.Error(),
-	})
-}
-
-func NotFoundErrorHandler(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusNotFound, gin.H{
-		"error": err.Error(),
-	})
-}
-
-func BadRequestErrorHandler(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusBadRequest, gin.H{
-		"error": err.Error(),
-	})
-}
-
-func UnauthorizedErrorHandler(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusUnauthorized, gin.H{
-		"error": err.Error(),
-	})
-}

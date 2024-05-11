@@ -20,9 +20,9 @@ type AuthenticationHandler struct {
 	*validator.Validate
 }
 
-func NewAuthenticationHandler(service *user.UserService, conf config.Config, validate *validator.Validate) *AuthenticationHandler {
-	return &AuthenticationHandler{
-		*service,
+func NewAuthenticationHandler(service user.UserService, conf config.Config, validate *validator.Validate) AuthenticationHandler {
+	return AuthenticationHandler{
+		service,
 		conf,
 		validate,
 	}
@@ -31,7 +31,7 @@ func NewAuthenticationHandler(service *user.UserService, conf config.Config, val
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.Error(exception.ErrInvalidRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest))
 		return
 	}
 
@@ -39,33 +39,33 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.Error(exception.ErrInvalidRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err))
 		return
 	}
 
 	u, err := h.GetByEmail(ctx, req.Email)
 	if err != nil {
-		ctx.Error(exception.ErrNotFound)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrNotFound))
 		return
 	}
 
 	if !u.IsActive {
 		log.Error().Msg("user is not active")
-		ctx.Error(exception.ErrNotFound)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrNotFound))
 		return
 	}
 
 	// Comparing the password with the hash
 	err = h.CheckPassword(req.Password, u.Password)
 	if err != nil {
-		ctx.Error(exception.ErrInvalidPassword)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrInvalidPassword))
 		return
 	}
 
 	accessToken, err := nanoid.Standard(21)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate access token")
-		ctx.Error(exception.ErrInternalServer)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
 		return
 	}
 	accessTokenAsString := accessToken()
@@ -73,7 +73,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	refreshToken, err := nanoid.Standard(21)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate refresh token")
-		ctx.Error(exception.ErrInternalServer)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
 		return
 	}
 	refreshTokenAsString := refreshToken()
@@ -93,7 +93,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	idTokenAsString, err := idToken.SignedString([]byte(h.JwtSecret))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create id token")
-		ctx.Error(exception.ErrInternalServer)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
 		return
 	}
 

@@ -40,14 +40,14 @@ type UserResponse struct {
 }
 
 type CreateUserRequest struct {
-	Name     string `json:"name" validate:"required"`
+	Name     string `json:"name" validate:"required,min=6,max=100"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 	Role     Role   `json:"role" validate:"required,alpha"`
 }
 
 type RegisterRequest struct {
-	Name     string `json:"name" validate:"required"`
+	Name     string `json:"name" validate:"required,min=6,max=100"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }

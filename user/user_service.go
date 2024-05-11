@@ -30,7 +30,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 	now := time.Now()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Error().Err(err).Msg("gRPC server failed to serve")
+		log.Error().Err(err).Msg(err.Error())
 		return User{}, err
 	}
 

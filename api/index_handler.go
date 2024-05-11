@@ -18,12 +18,12 @@ func (server *HttpServer) index(ctx *gin.Context) {
 func (server *HttpServer) test(ctx *gin.Context) {
 	test, ok := ctx.GetQuery("test")
 	if !ok {
-		ctx.Error(exception.ErrNotFound)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrNotFound))
 		return
 	}
 
 	if test == "error" {
-		ctx.Error(exception.ErrAlreadyExists)
+		ctx.AbortWithStatusJSON(http.StatusConflict, exception.ErrorResponse(exception.ErrAlreadyExists))
 		return
 	}
 
