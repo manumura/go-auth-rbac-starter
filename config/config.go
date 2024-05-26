@@ -9,7 +9,12 @@ type Config struct {
 	AccessTokenExpiresInAsSeconds  int    `mapstructure:"ACCESS_TOKEN_EXPIRES_IN_AS_SECONDS"`
 	RefreshTokenExpiresInAsSeconds int    `mapstructure:"REFRESH_TOKEN_EXPIRES_IN_AS_SECONDS"`
 	IdTokenExpiresInAsSeconds      int    `mapstructure:"ID_TOKEN_EXPIRES_IN_AS_SECONDS"`
-	JwtSecret                      string `mapstructure: "JWT_SECRET"`
+	JwtSecret                      string `mapstructure:"JWT_SECRET"`
+	DatabaseUrl                    string `mapstructure:"DATABASE_URL"`
+	MaxOpenConnections             int    `mapstructure:"DATABASE_MAX_OPEN_CONNECTIONS"`
+	MaxIdleConnections             int    `mapstructure:"DATABASE_MAX_IDLE_CONNECTIONS"`
+	ConnectionMaxLifetime          int    `mapstructure:"DATABASE_CONNECTION_MAX_LIFETIME_IN_SECONDS"`
+	ConnectionMaxIdleTime          int    `mapstructure:"DATABASE_CONNECTION_MAX_IDLE_TIME_IN_SECONDS"`
 }
 
 // LoadConfig reads configuration from file or environment variables.

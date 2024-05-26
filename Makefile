@@ -2,6 +2,9 @@ run:
 	@echo "Running the program..."
 	go run main.go
 
+test:
+	go test -v -cover -short ./...
+
 air:
 	@echo "Running the program with air..."
 	@air
@@ -13,4 +16,7 @@ proto:
 		--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
 		proto/*.proto
 
-.PHONY: run air proto
+sqlc:
+	sqlc generate
+
+.PHONY: run air proto sqlc

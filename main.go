@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/gapi"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/pb"
@@ -29,12 +33,12 @@ var interruptSignals = []os.Signal{
 }
 
 func main() {
-	conf, err := config.LoadConfig(".env")
+	config, err := config.LoadConfig(".env")
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot load config")
 	}
 
-	if conf.Environment == "dev" {
+	if config.Environment == "dev" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
@@ -43,12 +47,27 @@ func main() {
 	// use a single instance of Validate, it caches struct info
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
+	database := db.NewDataStore(config)
+	err = database.Connect()
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot open database")
+		return
+	}
+	defer database.Close()
+
+	u, err := database.GetUserByEmail(context.Background(), "test@test.com")
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot get user")
+		return
+	}
+	fmt.Printf("user %v\n", u)
+
 	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
 	defer stop()
 	waitGroup, ctx := errgroup.WithContext(ctx)
 
-	runGrpcServer(ctx, waitGroup, conf)
-	runHttpServer(ctx, waitGroup, conf, validate)
+	runGrpcServer(ctx, waitGroup, config)
+	runHttpServer(ctx, waitGroup, config, validate)
 
 	err = waitGroup.Wait()
 	if err != nil {
