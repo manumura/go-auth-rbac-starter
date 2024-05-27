@@ -55,6 +55,12 @@ func main() {
 	}
 	defer datastore.Close()
 
+	err = datastore.MigrateUp()
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot migrate up")
+		return
+	}
+
 	// TODO test
 	u, err := datastore.GetUserByEmail(context.Background(), "test@test.com")
 	if err != nil {

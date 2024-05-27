@@ -2,10 +2,12 @@ package db
 
 import (
 	"database/sql"
+	"embed"
 	"strconv"
 	"time"
 
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog/log"
 )
 
@@ -13,6 +15,8 @@ type DataStore interface {
 	Querier
 	Connect() error
 	Close() error
+	MigrateUp() error
+	MigrateDown() error
 }
 
 type Database struct {
@@ -73,5 +77,38 @@ func (d *Database) Close() error {
 		return err
 	}
 	log.Info().Msg("database connection closed")
+	return nil
+}
+
+//go:embed sql/migration/*.sql
+var embedMigrations embed.FS
+
+func (d *Database) MigrateUp() error {
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
+
+	if err := goose.Up(d.db, "sql/migration"); err != nil {
+		return err
+	}
+
+	log.Info().Msg("db migrated up successfully")
+	return nil
+}
+
+func (d *Database) MigrateDown() error {
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
+
+	if err := goose.Down(d.db, "sql/migration"); err != nil {
+		return err
+	}
+
+	log.Info().Msg("db migrated down successfully")
 	return nil
 }

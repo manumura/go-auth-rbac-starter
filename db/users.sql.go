@@ -33,7 +33,7 @@ type CreateUserParams struct {
 	Uuid      string         `json:"uuid"`
 	Password  string         `json:"password"`
 	Email     string         `json:"email"`
-	Name      sql.NullString `json:"name"`
+	Name      string         `json:"name"`
 	IsActive  int64          `json:"isActive"`
 	ImageID   sql.NullString `json:"imageId"`
 	ImageUrl  sql.NullString `json:"imageUrl"`
