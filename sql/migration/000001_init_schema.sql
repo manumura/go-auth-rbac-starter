@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE role (
 	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
 	"name" text NOT NULL,
@@ -22,3 +23,7 @@ CREATE TABLE user (
 CREATE INDEX "AK_user_role_id" ON user (role_id);
 CREATE UNIQUE INDEX "IDX_user_email" ON user (email);
 CREATE UNIQUE INDEX "IDX_user_uuid" ON user (uuid);
+
+-- +goose Down
+DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS role;

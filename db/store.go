@@ -31,15 +31,7 @@ func NewDataStore(config config.Config) DataStore {
 }
 
 func (d *Database) Connect() error {
-	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
-	log.Info().Msgf("Connecting to database at: %s", d.config.DatabaseUrl)
-
-	// var err error
-	// d.db, err = sqlx.ConnectContext(ctx, "sqlite3", d.url)
-	// if err != nil {
-	// 	return err
-	// }
+	log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
 
 	// Note : https://github.com/ncruces/go-sqlite-bench
 	// Thanks to https://www.golang.dk/articles/go-and-sqlite-in-the-cloud
@@ -51,7 +43,7 @@ func (d *Database) Connect() error {
 		return err
 	}
 
-	log.Info().Msgf("Setting database connection pool options ("+
+	log.Info().Msgf("setting database connection pool options ("+
 		"max open connections: %s, max idle connections: %s, connection max lifetime: %s, connection max idle time: %s)",
 		strconv.Itoa(d.config.MaxOpenConnections),
 		strconv.Itoa(d.config.MaxIdleConnections),
@@ -74,6 +66,12 @@ func (d *Database) Connect() error {
 }
 
 func (d *Database) Close() error {
-	log.Info().Msg("Closing database connection")
-	return d.db.Close()
+	log.Info().Msg("closing database connection")
+	err := d.db.Close()
+	if err != nil {
+		log.Error().Err(err).Msg("cannot close database connection")
+		return err
+	}
+	log.Info().Msg("database connection closed")
+	return nil
 }

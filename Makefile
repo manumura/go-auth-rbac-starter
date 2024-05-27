@@ -19,4 +19,23 @@ proto:
 sqlc:
 	sqlc generate
 
-.PHONY: run air proto sqlc
+migrate-status:
+	goose -dir "sql/migration" sqlite3 ./demo-auth-rbac.db status
+
+migrate-version:
+	goose -dir "sql/migration" sqlite3 ./demo-auth-rbac.db version
+
+# make migrate-create NAME=create_users_table
+migrate-create:
+	goose -dir "sql/migration" sqlite3 ./demo-auth-rbac.db create $(NAME) sql
+
+migrate-up:
+	goose -dir "sql/migration" sqlite3 ./demo-auth-rbac.db up
+
+migrate-up-by-one:
+	goose -dir "sql/migration" sqlite3 ./demo-auth-rbac.db up-by-one
+
+migrate-down:
+	goose -dir "sql/migration" sqlite3 ./demo-auth-rbac.db down
+
+.PHONY: run test air proto sqlc migrate-status migrate-up migrate-up-by-one migrate-down migrate-version migrate-create

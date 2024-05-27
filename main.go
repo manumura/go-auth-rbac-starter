@@ -47,18 +47,18 @@ func main() {
 	// use a single instance of Validate, it caches struct info
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
-	database := db.NewDataStore(config)
-	err = database.Connect()
+	datastore := db.NewDataStore(config)
+	err = datastore.Connect()
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot open database")
+		log.Fatal().Err(err).Msg("cannot connect to database")
 		return
 	}
-	defer database.Close()
+	defer datastore.Close()
 
-	u, err := database.GetUserByEmail(context.Background(), "test@test.com")
+	// TODO test
+	u, err := datastore.GetUserByEmail(context.Background(), "test@test.com")
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot get user")
-		return
+		log.Error().Err(err).Msg("cannot get user")
 	}
 	fmt.Printf("user %v\n", u)
 
