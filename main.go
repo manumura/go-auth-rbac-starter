@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -61,19 +60,12 @@ func main() {
 		return
 	}
 
-	// TODO test
-	u, err := datastore.GetUserByEmail(context.Background(), "test@test.com")
-	if err != nil {
-		log.Error().Err(err).Msg("cannot get user")
-	}
-	fmt.Printf("user %v\n", u)
-
 	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
 	defer stop()
 	waitGroup, ctx := errgroup.WithContext(ctx)
 
 	runGrpcServer(ctx, waitGroup, config)
-	runHttpServer(ctx, waitGroup, config, validate)
+	runHttpServer(ctx, waitGroup, config, datastore, validate)
 
 	err = waitGroup.Wait()
 	if err != nil {
@@ -82,15 +74,15 @@ func main() {
 }
 
 func runHttpServer(ctx context.Context,
-	waitGroup *errgroup.Group, conf config.Config,
+	waitGroup *errgroup.Group, config config.Config, dataStore db.DataStore,
 	validate *validator.Validate) {
-	server, err := api.NewHttpServer(conf, validate)
+	server, err := api.NewHttpServer(config, dataStore, validate)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create HTTP server")
 	}
 
 	waitGroup.Go(func() error {
-		log.Info().Msgf("start HTTP server at %s", conf.HTTPServerAddress)
+		log.Info().Msgf("start HTTP server at %s", config.HTTPServerAddress)
 
 		err = server.Start()
 		if err != nil {

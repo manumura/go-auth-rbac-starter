@@ -13,26 +13,26 @@ const (
 	USER  Role = "USER"
 )
 
-type User struct {
-	Id        int        `json:"id"`
-	Uuid      uuid.UUID  `json:"uuid"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	Password  string     `json:"password"`
-	IsActive  bool       `json:"isActive"`
-	ImageId   string     `json:"imageId"`
-	ImageUrl  string     `json:"imageUrl"`
-	Role      Role       `json:"role"`
-	CreatedAt *time.Time `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
-}
+// type User struct {
+// 	Id        int        `json:"id"`
+// 	Uuid      uuid.UUID  `json:"uuid"`
+// 	Name      string     `json:"name"`
+// 	Email     string     `json:"email"`
+// 	Password  string     `json:"password"`
+// 	IsActive  bool       `json:"isActive"`
+// 	ImageId   string     `json:"imageId"`
+// 	ImageUrl  string     `json:"imageUrl"`
+// 	Role      Role       `json:"role"`
+// 	CreatedAt *time.Time `json:"createdAt"`
+// 	UpdatedAt *time.Time `json:"updatedAt"`
+// }
 
 type UserResponse struct {
 	Uuid      uuid.UUID  `json:"uuid"`
 	Name      string     `json:"name"`
 	Email     string     `json:"email"`
 	IsActive  bool       `json:"isActive"`
-	ImageId   string     `json:"imageId"`
+	ImageID   string     `json:"imageId"`
 	ImageUrl  string     `json:"imageUrl"`
 	Role      Role       `json:"role"`
 	CreatedAt *time.Time `json:"createdAt"`

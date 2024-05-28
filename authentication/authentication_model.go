@@ -8,7 +8,7 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type LoginResponse struct {
+type AuthenticationResponse struct {
 	AccessToken          string    `json:"accessToken"`
 	RefreshToken         string    `json:"refreshToken"`
 	IdToken              string    `json:"idToken"`

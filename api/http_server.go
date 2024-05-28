@@ -8,18 +8,21 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
 type HttpServer struct {
 	config     config.Config
+	datastore  db.DataStore
 	httpServer *http.Server
 }
 
-func NewHttpServer(config config.Config, validate *validator.Validate) (*HttpServer, error) {
+func NewHttpServer(config config.Config, datastore db.DataStore, validate *validator.Validate) (*HttpServer, error) {
 	server := &HttpServer{
-		config: config,
+		config:    config,
+		datastore: datastore,
 	}
 
 	router := server.setupRouter(config, validate)
@@ -38,7 +41,7 @@ func (server *HttpServer) setupRouter(config config.Config, validate *validator.
 
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 
-	userService := user.NewUserService()
+	userService := user.NewUserService(server.datastore)
 	userHandler := user.NewUserHandler(userService, validate)
 	authenticationHandler := authentication.NewAuthenticationHandler(userService, config, validate)
 

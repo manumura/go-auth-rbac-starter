@@ -49,7 +49,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	if !u.IsActive {
+	if u.IsActive != 1 {
 		log.Error().Msg("user is not active")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrNotFound))
 		return
@@ -61,6 +61,8 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrInvalidPassword))
 		return
 	}
+
+	userResponse := user.ToUserResponse(u)
 
 	accessToken, err := nanoid.Standard(21)
 	if err != nil {
@@ -78,14 +80,13 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	}
 	refreshTokenAsString := refreshToken()
 
-	now := time.Now()
+	now := time.Now().UTC()
 	accessTokenExpiresAt := now.Add(time.Duration(h.AccessTokenExpiresInAsSeconds) * time.Second)
 	// refreshTokenExpiresAt := now.Add(time.Duration(h.RefreshTokenExpiresInAsSeconds) * time.Second)
 	idTokenExpiresAt := now.Add(time.Duration(h.IdTokenExpiresInAsSeconds) * time.Second)
 
-	userResponse := user.ToUserResponse(u)
 	idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iat":  now,
+		"iat":  now.Format(time.DateTime),
 		"exp":  idTokenExpiresAt,
 		"user": userResponse,
 	})
@@ -97,12 +98,12 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	loginResponse := LoginResponse{
+	authResponse := AuthenticationResponse{
 		AccessToken:          accessTokenAsString,
 		RefreshToken:         refreshTokenAsString,
 		IdToken:              idTokenAsString,
 		AccessTokenExpiresAt: accessTokenExpiresAt,
 	}
 
-	ctx.JSON(http.StatusOK, loginResponse)
+	ctx.JSON(http.StatusOK, authResponse)
 }

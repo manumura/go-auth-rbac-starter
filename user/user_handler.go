@@ -1,11 +1,13 @@
 package user
 
 import (
-	"fmt"
+	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/pb"
 	"github.com/rs/zerolog/log"
@@ -27,8 +29,7 @@ func NewUserHandler(service UserService, validate *validator.Validate) UserHandl
 	}
 }
 
-var index = 1
-var Users = []User{}
+var Users = []db.User{}
 
 func (h *UserHandler) Register(ctx *gin.Context) {
 	var req RegisterRequest
@@ -44,6 +45,19 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
+	u, err := h.GetByEmail(ctx, req.Email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Error().Err(err).Msg("unexpected error")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
+		return
+	}
+
+	if u.Uuid != "" {
+		log.Error().Msg("email already exists")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(errors.New("cannot register with this email")))
+		return
+	}
+
 	user, err := h.Create(ctx, CreateUserRequest{
 		Name:     req.Name,
 		Email:    req.Email,
@@ -56,10 +70,8 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
+	// TODO: remove this
 	Users = append(Users, user)
-	index++
-
-	fmt.Printf("Register called %v\n", Users)
 
 	userResponse := ToUserResponse(user)
 
