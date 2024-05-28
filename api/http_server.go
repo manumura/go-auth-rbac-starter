@@ -10,6 +10,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
@@ -40,6 +41,9 @@ func (server *HttpServer) setupRouter(config config.Config, validate *validator.
 	router := gin.Default()
 
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
+
+	roleService := role.NewRoleService(server.datastore)
+	roleService.InitRolesMaps(context.Background())
 
 	userService := user.NewUserService(server.datastore)
 	userHandler := user.NewUserHandler(userService, validate)

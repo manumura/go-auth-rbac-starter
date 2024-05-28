@@ -62,6 +62,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
+	now := time.Now().UTC()
 	userResponse := user.ToUserResponse(u)
 
 	accessToken, err := nanoid.Standard(21)
@@ -71,6 +72,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 	accessTokenAsString := accessToken()
+	accessTokenExpiresAt := now.Add(time.Duration(h.AccessTokenExpiresInAsSeconds) * time.Second)
 
 	refreshToken, err := nanoid.Standard(21)
 	if err != nil {
@@ -79,12 +81,9 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 	refreshTokenAsString := refreshToken()
-
-	now := time.Now().UTC()
-	accessTokenExpiresAt := now.Add(time.Duration(h.AccessTokenExpiresInAsSeconds) * time.Second)
 	// refreshTokenExpiresAt := now.Add(time.Duration(h.RefreshTokenExpiresInAsSeconds) * time.Second)
-	idTokenExpiresAt := now.Add(time.Duration(h.IdTokenExpiresInAsSeconds) * time.Second)
 
+	idTokenExpiresAt := now.Add(time.Duration(h.IdTokenExpiresInAsSeconds) * time.Second)
 	idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iat":  now.Format(time.DateTime),
 		"exp":  idTokenExpiresAt,

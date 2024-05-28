@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/db"
+	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/rs/zerolog/log"
 )
 
@@ -25,14 +26,13 @@ func ToUserResponse(user db.User) UserResponse {
 	}
 
 	return UserResponse{
-		Uuid:     uuid.MustParse(user.Uuid),
-		Name:     user.Name,
-		Email:    user.Email,
-		IsActive: user.IsActive == 1,
-		ImageID:  user.ImageID.String,
-		ImageUrl: user.ImageUrl.String,
-		// TODO: Role
-		Role:      USER,
+		Uuid:      uuid.MustParse(user.Uuid),
+		Name:      user.Name,
+		Email:     user.Email,
+		IsActive:  user.IsActive == 1,
+		ImageID:   user.ImageID.String,
+		ImageUrl:  user.ImageUrl.String,
+		Role:      role.Role(role.RoleIDToName[user.RoleID]),
 		CreatedAt: &c,
 		UpdatedAt: &u,
 	}

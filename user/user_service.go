@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/db"
+	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -35,13 +36,12 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 	}
 
 	p := db.CreateUserParams{
-		Uuid:     uuid.New().String(),
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: string(hashedPassword),
-		IsActive: 1,
-		// TODO: RoleID
-		RoleID:    1,
+		Uuid:      uuid.New().String(),
+		Name:      req.Name,
+		Email:     req.Email,
+		Password:  string(hashedPassword),
+		IsActive:  1,
+		RoleID:    role.RoleNameToID[req.Role.String()],
 		CreatedAt: now.Format(time.DateTime),
 	}
 

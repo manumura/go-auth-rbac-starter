@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/pb"
+	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,8 +29,6 @@ func NewUserHandler(service UserService, validate *validator.Validate) UserHandl
 	}
 }
 
-var Users = []db.User{}
-
 func (h *UserHandler) Register(ctx *gin.Context) {
 	var req RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -47,7 +45,6 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 
 	u, err := h.GetByEmail(ctx, req.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Error().Err(err).Msg("unexpected error")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
 		return
 	}
@@ -62,16 +59,13 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
-		Role:     USER,
+		Role:     role.USER,
 	})
 
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
 		return
 	}
-
-	// TODO: remove this
-	Users = append(Users, user)
 
 	userResponse := ToUserResponse(user)
 
