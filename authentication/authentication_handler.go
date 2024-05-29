@@ -16,13 +16,15 @@ import (
 
 type AuthenticationHandler struct {
 	user.UserService
+	AuthenticationService
 	config.Config
 	*validator.Validate
 }
 
-func NewAuthenticationHandler(service user.UserService, conf config.Config, validate *validator.Validate) AuthenticationHandler {
+func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, conf config.Config, validate *validator.Validate) AuthenticationHandler {
 	return AuthenticationHandler{
-		service,
+		userService,
+		authenticationService,
 		conf,
 		validate,
 	}
@@ -81,7 +83,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 	refreshTokenAsString := refreshToken()
-	// refreshTokenExpiresAt := now.Add(time.Duration(h.RefreshTokenExpiresInAsSeconds) * time.Second)
+	refreshTokenExpiresAt := now.Add(time.Duration(h.RefreshTokenExpiresInAsSeconds) * time.Second)
 
 	idTokenExpiresAt := now.Add(time.Duration(h.IdTokenExpiresInAsSeconds) * time.Second)
 	idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -93,6 +95,21 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	idTokenAsString, err := idToken.SignedString([]byte(h.JwtSecret))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create id token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
+		return
+	}
+
+	// Save the tokens in the database
+	authReq := AuthenticationRequest{
+		UserID:                u.ID,
+		AccessToken:           accessTokenAsString,
+		RefreshToken:          refreshTokenAsString,
+		AccessTokenExpiresAt:  accessTokenExpiresAt,
+		RefreshTokenExpiresAt: refreshTokenExpiresAt,
+	}
+	_, err = h.GenerateAuthenticationToken(ctx, authReq)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to save authentication token")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
 		return
 	}

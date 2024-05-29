@@ -27,9 +27,9 @@ CREATE UNIQUE INDEX "IDX_user_uuid" ON user (uuid);
 CREATE TABLE authentication_token (
 	"user_id" INTEGER PRIMARY KEY,
 	"access_token" text NOT NULL,
-	"access_token_expire_at" text NOT NULL,
+	"access_token_expires_at" text NOT NULL,
 	"refresh_token" text NOT NULL,
-	"refresh_token_expire_at" text NOT NULL,
+	"refresh_token_expires_at" text NOT NULL,
 	"created_at" text NOT NULL,
 	CONSTRAINT "FK_authentication_token_user_id_user_id" FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -40,7 +40,7 @@ CREATE UNIQUE INDEX "REL_authentication_token_user_id" ON authentication_token (
 CREATE TABLE reset_password_token (
 	"user_id" INTEGER PRIMARY KEY,
 	"token" text NOT NULL,
-	"expired_at" text NOT NULL,
+	"expires_at" text NOT NULL,
 	"created_at" text NOT NULL,
 	"updated_at" text,
 	CONSTRAINT "FK_reset_password_token_user_id_user_id" FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE

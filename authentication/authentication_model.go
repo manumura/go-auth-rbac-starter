@@ -8,6 +8,14 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type AuthenticationRequest struct {
+	UserID                int64     `json:"userId"`
+	AccessToken           string    `json:"accessToken"`
+	RefreshToken          string    `json:"refreshToken"`
+	AccessTokenExpiresAt  time.Time `json:"accessTokenExpiresAt"`
+	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
+}
+
 type AuthenticationResponse struct {
 	AccessToken          string    `json:"accessToken"`
 	RefreshToken         string    `json:"refreshToken"`

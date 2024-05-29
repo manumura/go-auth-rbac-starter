@@ -44,10 +44,11 @@ func (server *HttpServer) setupRouter(config config.Config, validate *validator.
 
 	roleService := role.NewRoleService(server.datastore)
 	roleService.InitRolesMaps(context.Background())
-
 	userService := user.NewUserService(server.datastore)
+	authenticationService := authentication.NewAuthenticationService(server.datastore)
+
 	userHandler := user.NewUserHandler(userService, validate)
-	authenticationHandler := authentication.NewAuthenticationHandler(userService, config, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
 
 	apiV1Router := router.Group("/api/v1")
 	apiV1Router.GET("/index", server.index)

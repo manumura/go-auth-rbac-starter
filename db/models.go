@@ -9,18 +9,18 @@ import (
 )
 
 type AuthenticationToken struct {
-	UserID               int64  `json:"userId"`
-	AccessToken          string `json:"accessToken"`
-	AccessTokenExpireAt  string `json:"accessTokenExpireAt"`
-	RefreshToken         string `json:"refreshToken"`
-	RefreshTokenExpireAt string `json:"refreshTokenExpireAt"`
-	CreatedAt            string `json:"createdAt"`
+	UserID                int64  `json:"userId"`
+	AccessToken           string `json:"accessToken"`
+	AccessTokenExpiresAt  string `json:"accessTokenExpiresAt"`
+	RefreshToken          string `json:"refreshToken"`
+	RefreshTokenExpiresAt string `json:"refreshTokenExpiresAt"`
+	CreatedAt             string `json:"createdAt"`
 }
 
 type ResetPasswordToken struct {
 	UserID    int64          `json:"userId"`
 	Token     string         `json:"token"`
-	ExpiredAt string         `json:"expiredAt"`
+	ExpiresAt string         `json:"expiresAt"`
 	CreatedAt string         `json:"createdAt"`
 	UpdatedAt sql.NullString `json:"updatedAt"`
 }

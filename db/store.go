@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"strconv"
@@ -17,6 +18,7 @@ type DataStore interface {
 	Close() error
 	MigrateUp() error
 	MigrateDown() error
+	ExecTx(ctx context.Context, fn func(*Queries) error) error
 }
 
 type Database struct {
@@ -32,6 +34,30 @@ func NewDataStore(config config.Config) DataStore {
 		// DB: db,
 		// Queries: New(DB),
 	}
+}
+
+func (d *Database) ExecTx(ctx context.Context, fn func(*Queries) error) error {
+	log.Info().Msg("beginning transaction")
+	tx, err := d.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	q := d.Queries.WithTx(tx)
+
+	err = fn(q)
+	log.Info().Msg("transaction completed")
+	if err != nil {
+		log.Error().Err(err).Msg("transaction error")
+		// if rbErr := tx.Rollback(); rbErr != nil {
+		// 	log.Error().Err(rbErr).Msg("cannot rollback transaction")
+		// 	return fmt.Errorf("tx err: %v, rollback err: %v", err, rbErr)
+		// }
+		return err
+	}
+
+	log.Info().Msg("committing transaction")
+	return tx.Commit()
 }
 
 func (d *Database) Connect() error {

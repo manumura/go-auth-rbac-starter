@@ -38,4 +38,7 @@ migrate-up-by-one:
 migrate-down:
 	goose -dir "db/sql/migration" sqlite3 ./demo-auth-rbac.db down
 
+migrate-reset:
+	goose -dir "db/sql/migration" sqlite3 ./demo-auth-rbac.db reset
+
 .PHONY: run test air proto sqlc migrate-status migrate-up migrate-up-by-one migrate-down migrate-version migrate-create
