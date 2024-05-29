@@ -10,7 +10,8 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
-	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/middleware"
+	"github.com/manumura/go-auth-rbac-starter/profile"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
@@ -39,24 +40,25 @@ func NewHttpServer(config config.Config, datastore db.DataStore, validate *valid
 
 func (server *HttpServer) setupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	router := gin.Default()
-
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 
-	roleService := role.NewRoleService(server.datastore)
-	roleService.InitRolesMaps(context.Background())
 	userService := user.NewUserService(server.datastore)
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
 
 	userHandler := user.NewUserHandler(userService, validate)
 	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
+	profileHandler := profile.NewProfileHandler(userService)
 
-	apiV1Router := router.Group("/api/v1")
-	apiV1Router.GET("/index", server.index)
-	apiV1Router.POST("/register", userHandler.Register)
-	apiV1Router.POST("/login", authenticationHandler.Login)
+	publicRouter := router.Group("/api/v1")
+	publicRouter.GET("/index", server.index)
+	publicRouter.POST("/register", userHandler.Register)
+	publicRouter.POST("/login", authenticationHandler.Login)
+
+	authRouter := publicRouter.Use(middleware.AuthMiddleware(authenticationService, userService))
+	authRouter.GET("/profile", profileHandler.GetProfile)
 
 	// TODO remove test
-	apiV1Router.GET("/test", server.test)
+	publicRouter.GET("/test", server.test)
 
 	return router
 }

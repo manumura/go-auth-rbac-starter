@@ -14,6 +14,7 @@ import (
 type UserService interface {
 	Create(ctx context.Context, req CreateUserRequest) (db.User, error)
 	GetByEmail(ctx context.Context, email string) (db.User, error)
+	GetByID(ctx context.Context, id int64) (db.User, error)
 	CheckPassword(password string, hashedPassword string) error
 }
 
@@ -22,6 +23,9 @@ type UserServiceImpl struct {
 }
 
 func NewUserService(datastore db.DataStore) UserService {
+	roleService := role.NewRoleService(datastore)
+	roleService.InitRolesMaps(context.Background())
+
 	return &UserServiceImpl{
 		datastore: datastore,
 	}
@@ -57,7 +61,17 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (db.User, error) {
 	u, err := service.datastore.GetUserByEmail(ctx, email)
 	if err != nil {
-		log.Error().Err(err).Msg(err.Error())
+		log.Error().Err(err).Msgf("user not found with email %s", email)
+		return db.User{}, err
+	}
+
+	return u, nil
+}
+
+func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (db.User, error) {
+	u, err := service.datastore.GetUserByID(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msgf("user not found with id %d", id)
 		return db.User{}, err
 	}
 

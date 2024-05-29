@@ -9,7 +9,8 @@ import (
 )
 
 type AuthenticationService interface {
-	GenerateAuthenticationToken(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error)
+	CreateAuthentication(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error)
+	GetByAccessToken(ctx context.Context, token string) (db.AuthenticationToken, error)
 }
 
 type AuthenticationServiceImpl struct {
@@ -22,7 +23,7 @@ func NewAuthenticationService(datastore db.DataStore) AuthenticationService {
 	}
 }
 
-func (service *AuthenticationServiceImpl) GenerateAuthenticationToken(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error) {
+func (service *AuthenticationServiceImpl) CreateAuthentication(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error) {
 	var t db.AuthenticationToken
 
 	err := service.datastore.ExecTx(ctx, func(q *db.Queries) error {
@@ -54,5 +55,10 @@ func (service *AuthenticationServiceImpl) GenerateAuthenticationToken(ctx contex
 		return nil
 	})
 
+	return t, err
+}
+
+func (service *AuthenticationServiceImpl) GetByAccessToken(ctx context.Context, token string) (db.AuthenticationToken, error) {
+	t, err := service.datastore.GetAuthenticationTokenByAccessToken(ctx, token)
 	return t, err
 }

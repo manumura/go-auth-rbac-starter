@@ -13,3 +13,7 @@ RETURNING *;
 -- name: DeleteAuthenticationToken :exec
 DELETE FROM authentication_token
 WHERE user_id = ?;
+
+-- name: GetAuthenticationTokenByAccessToken :one
+SELECT * FROM authentication_token
+WHERE access_token = ?;

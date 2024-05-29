@@ -21,11 +21,11 @@ type AuthenticationHandler struct {
 	*validator.Validate
 }
 
-func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, conf config.Config, validate *validator.Validate) AuthenticationHandler {
+func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, config config.Config, validate *validator.Validate) AuthenticationHandler {
 	return AuthenticationHandler{
 		userService,
 		authenticationService,
-		conf,
+		config,
 		validate,
 	}
 }
@@ -107,7 +107,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshTokenExpiresAt: refreshTokenExpiresAt,
 	}
-	_, err = h.GenerateAuthenticationToken(ctx, authReq)
+	_, err = h.CreateAuthentication(ctx, authReq)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save authentication token")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))

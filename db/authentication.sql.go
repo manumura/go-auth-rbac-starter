@@ -61,3 +61,22 @@ func (q *Queries) DeleteAuthenticationToken(ctx context.Context, userID int64) e
 	_, err := q.db.ExecContext(ctx, deleteAuthenticationToken, userID)
 	return err
 }
+
+const getAuthenticationTokenByAccessToken = `-- name: GetAuthenticationTokenByAccessToken :one
+SELECT user_id, access_token, access_token_expires_at, refresh_token, refresh_token_expires_at, created_at FROM authentication_token
+WHERE access_token = ?
+`
+
+func (q *Queries) GetAuthenticationTokenByAccessToken(ctx context.Context, accessToken string) (AuthenticationToken, error) {
+	row := q.db.QueryRowContext(ctx, getAuthenticationTokenByAccessToken, accessToken)
+	var i AuthenticationToken
+	err := row.Scan(
+		&i.UserID,
+		&i.AccessToken,
+		&i.AccessTokenExpiresAt,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}

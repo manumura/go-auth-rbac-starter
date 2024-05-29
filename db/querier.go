@@ -12,8 +12,10 @@ type Querier interface {
 	CreateAuthenticationToken(ctx context.Context, arg CreateAuthenticationTokenParams) (AuthenticationToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAuthenticationToken(ctx context.Context, userID int64) error
+	GetAuthenticationTokenByAccessToken(ctx context.Context, accessToken string) (AuthenticationToken, error)
 	GetRoles(ctx context.Context) ([]Role, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, id int64) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -12,6 +12,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	maxConnectAttempts = 10
+)
+
 type DataStore interface {
 	Querier
 	Connect() error
@@ -73,6 +77,20 @@ func (d *Database) Connect() error {
 		return err
 	}
 
+	var dbError error
+	for attempt := 1; attempt <= maxConnectAttempts; attempt++ {
+		dbError = db.Ping()
+		if dbError == nil {
+			break
+		}
+		log.Info().Msgf("cannot connect to db (%d): %s\n", attempt, dbError)
+		// sleep with exponential backoff
+		time.Sleep(time.Duration(attempt*attempt) * time.Second)
+	}
+	if dbError != nil {
+		return dbError
+	}
+
 	log.Info().Msgf("setting database connection pool options ("+
 		"max open connections: %s, max idle connections: %s, connection max lifetime: %s, connection max idle time: %s)",
 		strconv.Itoa(d.config.MaxOpenConnections),
@@ -87,7 +105,11 @@ func (d *Database) Connect() error {
 	// get SQLite version
 	var version string
 	r := db.QueryRow("select sqlite_version()")
-	r.Scan(&version)
+	err = r.Scan(&version)
+	if err != nil {
+		log.Error().Err(err).Msg("cannot get SQLite version")
+		return err
+	}
 	log.Info().Msgf("SQLite version is: %s", version)
 
 	d.db = db

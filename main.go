@@ -31,6 +31,7 @@ var interruptSignals = []os.Signal{
 	syscall.SIGINT,
 }
 
+// TODO cookies
 // TODO swagger
 func main() {
 	config, err := config.LoadConfig(".env")

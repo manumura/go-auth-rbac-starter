@@ -18,3 +18,8 @@ RETURNING *;
 SELECT *
 FROM user
 WHERE email = ?;
+
+-- name: GetUserByID :one
+SELECT *
+FROM user
+WHERE id = ?;
