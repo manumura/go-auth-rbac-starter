@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
@@ -14,9 +15,10 @@ import (
 )
 
 const (
-	authorizationHeaderKey  = "authorization"
-	authorizationTypeBearer = "bearer"
-	AuthenticatedUserKey    = "user"
+	invalidAccessTokenErrorMessage = "invalid access token"
+	authorizationHeaderKey         = "authorization"
+	authorizationTypeBearer        = "bearer"
+	AuthenticatedUserKey           = "user"
 )
 
 func AuthMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
@@ -44,20 +46,35 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 		}
 
 		accessToken := fields[1]
-		t, err := authenticationService.GetByAccessToken(ctx, accessToken)
+		a, err := authenticationService.GetByAccessToken(ctx, accessToken)
 		if err != nil {
-			log.Error().Err(err).Msg("error getting authentication token from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New("invalid access token")))
+			log.Error().Err(err).Msg("error getting authentication from DB")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
 			return
 		}
 
-		u, err := userService.GetByID(ctx, t.UserID)
+		accessTokenExpiresAt, err := time.Parse(time.DateTime, a.AccessTokenExpiresAt)
+		if err != nil {
+			log.Error().Err(err).Msg("error parsing access token expiry time")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
+			return
+		}
+
+		now := time.Now().UTC()
+		if accessTokenExpiresAt.Before(now) {
+			log.Error().Msg("access token expired")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
+			return
+		}
+
+		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New("invalid access token")))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
 			return
 		}
 
+		log.Info().Msgf("authenticated user: %s", u.Email)
 		ctx.Set(AuthenticatedUserKey, u)
 		ctx.Next()
 	}

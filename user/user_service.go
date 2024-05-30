@@ -13,6 +13,7 @@ import (
 
 type UserService interface {
 	Create(ctx context.Context, req CreateUserRequest) (db.User, error)
+	GetAll(ctx context.Context) ([]db.User, error)
 	GetByEmail(ctx context.Context, email string) (db.User, error)
 	GetByID(ctx context.Context, id int64) (db.User, error)
 	CheckPassword(password string, hashedPassword string) error
@@ -53,6 +54,16 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 	if err != nil {
 		log.Error().Err(err).Msg(err.Error())
 		return db.User{}, err
+	}
+
+	return u, nil
+}
+
+func (service *UserServiceImpl) GetAll(ctx context.Context) ([]db.User, error) {
+	u, err := service.datastore.GetAllUsers(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("fetching all users failed")
+		return []db.User{}, err
 	}
 
 	return u, nil

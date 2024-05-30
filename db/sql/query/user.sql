@@ -14,6 +14,10 @@ INSERT INTO user (
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
+-- name: GetAllUsers :many
+SELECT *
+FROM user;
+
 -- name: GetUserByEmail :one
 SELECT *
 FROM user

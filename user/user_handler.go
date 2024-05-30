@@ -36,8 +36,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	err := h.Validate.Struct(req)
-	if err != nil {
+	if err := h.Validate.Struct(req); err != nil {
 		log.Error().Err(err).Msg("validation error")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err))
 		return
@@ -77,4 +76,16 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	// }
 
 	ctx.JSON(http.StatusOK, userResponse)
+}
+
+// TODO query params
+func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
+	u, err := h.GetAll(ctx)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
+		return
+	}
+
+	userResponseList := ToUserResponseList(u)
+	ctx.JSON(http.StatusOK, userResponseList)
 }

@@ -37,3 +37,12 @@ func ToUserResponse(user db.User) UserResponse {
 		UpdatedAt: &u,
 	}
 }
+
+func ToUserResponseList(users []db.User) []UserResponse {
+	userResponseList := []UserResponse{}
+	for _, u := range users {
+		userResponse := ToUserResponse(u)
+		userResponseList = append(userResponseList, userResponse)
+	}
+	return userResponseList
+}

@@ -55,6 +55,7 @@ func (server *HttpServer) setupRouter(config config.Config, validate *validator.
 	publicRouter.POST("/login", authenticationHandler.Login)
 
 	authRouter := publicRouter.Use(middleware.AuthMiddleware(authenticationService, userService))
+	authRouter.GET("/users", userHandler.GetAllUsers)
 	authRouter.GET("/profile", profileHandler.GetProfile)
 
 	// TODO remove test
