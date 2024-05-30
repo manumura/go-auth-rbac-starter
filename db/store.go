@@ -50,9 +50,8 @@ func (d *Database) ExecTx(ctx context.Context, fn func(*Queries) error) error {
 	q := d.Queries.WithTx(tx)
 
 	err = fn(q)
-	log.Info().Msg("transaction completed")
 	if err != nil {
-		log.Error().Err(err).Msg("transaction error")
+		log.Error().Err(err).Msg("transaction failed: rolling back")
 		// if rbErr := tx.Rollback(); rbErr != nil {
 		// 	log.Error().Err(rbErr).Msg("cannot rollback transaction")
 		// 	return fmt.Errorf("tx err: %v, rollback err: %v", err, rbErr)

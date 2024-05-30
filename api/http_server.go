@@ -61,9 +61,6 @@ func (server *HttpServer) setupRouter(config config.Config, validate *validator.
 	adminRouter := authRouter.Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
 	adminRouter.GET("/users", userHandler.GetAllUsers)
 
-	// TODO remove test
-	publicRouter.GET("/test", server.test)
-
 	return router
 }
 
