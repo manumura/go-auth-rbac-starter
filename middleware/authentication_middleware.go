@@ -74,8 +74,9 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 			return
 		}
 
-		log.Info().Msgf("authenticated user: %s", u.Email)
-		ctx.Set(AuthenticatedUserKey, u)
+		userResponse := user.ToUserResponse(u)
+		log.Info().Msgf("authenticated user: %s", userResponse.Email)
+		ctx.Set(AuthenticatedUserKey, userResponse)
 		ctx.Next()
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/profile"
+	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
@@ -55,8 +56,10 @@ func (server *HttpServer) setupRouter(config config.Config, validate *validator.
 	publicRouter.POST("/login", authenticationHandler.Login)
 
 	authRouter := publicRouter.Use(middleware.AuthMiddleware(authenticationService, userService))
-	authRouter.GET("/users", userHandler.GetAllUsers)
 	authRouter.GET("/profile", profileHandler.GetProfile)
+
+	adminRouter := authRouter.Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
+	adminRouter.GET("/users", userHandler.GetAllUsers)
 
 	// TODO remove test
 	publicRouter.GET("/test", server.test)
