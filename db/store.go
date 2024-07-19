@@ -63,6 +63,7 @@ func (d *Database) ExecTx(ctx context.Context, fn func(*Queries) error) error {
 	return tx.Commit()
 }
 
+// TODO turso
 func (d *Database) Connect() error {
 	log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
 

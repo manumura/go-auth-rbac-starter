@@ -33,6 +33,7 @@ var interruptSignals = []os.Signal{
 
 // TODO cookies
 // TODO swagger
+// TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
 	config, err := config.LoadConfig(".env")
 	if err != nil {
