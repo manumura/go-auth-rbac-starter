@@ -22,12 +22,11 @@ func NewHttpServer(config config.Config, datastore db.DataStore, validate *valid
 	}
 
 	router := server.SetupRouter(config, validate)
-
-	httpServer := &http.Server{
+	
+	server.httpServer = &http.Server{
 		Addr:    config.HTTPServerAddress,
 		Handler: router,
 	}
-	server.httpServer = httpServer
 
 	return server, nil
 }

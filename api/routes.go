@@ -22,6 +22,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	router := gin.Default()
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
+	router.Use(middleware.SecurityMiddleware())
 
 	publicRouterGroup := router.Group("/api/v1")
 	publicRouterGroup.GET("/index", server.index)
