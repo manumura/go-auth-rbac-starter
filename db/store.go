@@ -10,6 +10,8 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog/log"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 const (
@@ -63,16 +65,19 @@ func (d *Database) ExecTx(ctx context.Context, fn func(*Queries) error) error {
 	return tx.Commit()
 }
 
-// TODO turso
+// TODO turso https://github.com/hadyrashwan/golang-for-node-devs/blob/main/backend/api/dboperations/operations.go
 func (d *Database) Connect() error {
-	log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
+	log.Info().Msgf("connecting to database at: %s", d.config.TursoDatabaseUrl)
+	url := d.config.TursoDatabaseUrl + "?authToken=" + d.config.TursoAuthToken
+	db, err := sql.Open("libsql", url)
 
 	// Note : https://github.com/ncruces/go-sqlite-bench
 	// Thanks to https://www.golang.dk/articles/go-and-sqlite-in-the-cloud
 	// - Set WAL mode (not strictly necessary each time because it's persisted in the database, but good for first run)
 	// - Set busy timeout, so concurrent writers wait on each other instead of erroring immediately
 	// - Enable foreign key checks
-	db, err := sql.Open("sqlite3", d.config.DatabaseUrl+"?_journal=WAL&_timeout=5000&_fk=true")
+	// log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
+	// db, err := sql.Open("sqlite3", d.config.DatabaseUrl+"?_journal=WAL&_timeout=5000&_fk=true")
 	if err != nil {
 		return err
 	}

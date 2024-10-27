@@ -15,6 +15,8 @@ type Config struct {
 	MaxIdleConnections             int    `mapstructure:"DATABASE_MAX_IDLE_CONNECTIONS"`
 	ConnectionMaxLifetime          int    `mapstructure:"DATABASE_CONNECTION_MAX_LIFETIME_IN_SECONDS"`
 	ConnectionMaxIdleTime          int    `mapstructure:"DATABASE_CONNECTION_MAX_IDLE_TIME_IN_SECONDS"`
+	TursoDatabaseUrl               string `mapstructure:"TURSO_DATABASE_URL"`
+	TursoAuthToken                 string `mapstructure:"TURSO_AUTH_TOKEN"`
 }
 
 // LoadConfig reads configuration from file or environment variables.

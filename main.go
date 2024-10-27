@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -35,6 +36,7 @@ var interruptSignals = []os.Signal{
 // TODO swagger
 // TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
+	fmt.Println("Hello, World!")
 	config, err := config.LoadConfig(".env")
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot load config")
