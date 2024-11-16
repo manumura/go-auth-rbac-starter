@@ -27,7 +27,7 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 		return
 	}
 
-	u, ok := val.(user.UserResponse)
+	u, ok := val.(user.AuthenticatedUser)
 	if !ok {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New("user not authenticated")))
 		return

@@ -20,7 +20,7 @@ func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 			return
 		}
 
-		u, ok := val.(user.UserResponse)
+		u, ok := val.(user.AuthenticatedUser)
 		if !ok {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(errors.New("user not authenticated")))
 			return

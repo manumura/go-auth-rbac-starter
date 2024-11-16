@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/pb"
 	"github.com/manumura/go-auth-rbac-starter/role"
@@ -48,7 +49,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	if u.Uuid != "" {
+	if u.Uuid != uuid.Nil {
 		log.Error().Msg("email already exists")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(errors.New("cannot register with this email")))
 		return
@@ -66,7 +67,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	userResponse := ToUserResponse(user)
+	authenticatedUser := ToAuthenticatedUser(user)
 
 	// TODO send event to user event channel
 	// UserEventsChannel <- &pb.Event{
@@ -75,7 +76,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	// 	Data: fmt.Sprintf("Event %d data", 1),
 	// }
 
-	ctx.JSON(http.StatusOK, userResponse)
+	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
 // TODO query params
@@ -86,6 +87,6 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 		return
 	}
 
-	userResponseList := ToUserResponseList(u)
-	ctx.JSON(http.StatusOK, userResponseList)
+	authenticatedUsers := ToAuthenticatedUsers(u)
+	ctx.JSON(http.StatusOK, authenticatedUsers)
 }

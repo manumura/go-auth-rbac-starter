@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,10 +13,10 @@ import (
 )
 
 type UserService interface {
-	Create(ctx context.Context, req CreateUserRequest) (db.User, error)
-	GetAll(ctx context.Context) ([]db.User, error)
-	GetByEmail(ctx context.Context, email string) (db.User, error)
-	GetByID(ctx context.Context, id int64) (db.User, error)
+	Create(ctx context.Context, req CreateUserRequest) (User, error)
+	GetAll(ctx context.Context) ([]User, error)
+	GetByEmail(ctx context.Context, email string) (User, error)
+	GetByID(ctx context.Context, id int64) (User, error)
 	CheckPassword(password string, hashedPassword string) error
 }
 
@@ -32,61 +33,90 @@ func NewUserService(datastore db.DataStore) UserService {
 	}
 }
 
-func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserRequest) (db.User, error) {
+func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserRequest) (User, error) {
 	now := time.Now().UTC()
+	nowAsString := now.Format(time.DateTime)
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error().Err(err).Msg(err.Error())
-		return db.User{}, err
+		return User{}, err
 	}
 
-	p := db.CreateUserParams{
-		Uuid:      uuid.New().String(),
-		Name:      req.Name,
-		Email:     req.Email,
-		Password:  string(hashedPassword),
-		IsActive:  1,
-		RoleID:    role.RoleNameToID[req.Role.String()],
-		CreatedAt: now.Format(time.DateTime),
-	}
+	var user User
+	err = service.datastore.ExecTx(ctx, func(q *db.Queries) error {
+		var err error
 
-	u, err := service.datastore.CreateUser(ctx, p)
-	if err != nil {
-		log.Error().Err(err).Msg(err.Error())
-		return db.User{}, err
-	}
+		log.Info().Msg("creating new user")
+		p := db.CreateUserParams{
+			Uuid:      uuid.New().String(),
+			Name:      req.Name,
+			IsActive:  1,
+			RoleID:    role.RoleNameToID[req.Role.String()],
+			CreatedAt: nowAsString,
+			UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
+		}
 
-	return u, nil
+		u, err := q.CreateUser(ctx, p)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return err
+		}
+
+		log.Info().Msg("creating new user credentials")
+		ucp := db.CreateUserCredentialsParams{
+			UserID:          u.ID,
+			Email:           req.Email,
+			Password:        string(hashedPassword),
+			IsEmailVerified: 0,
+		}
+		uc, err := q.CreateUserCredentials(ctx, ucp)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return err
+		}
+
+		user = ToUser(u, uc)
+		log.Info().Msgf("new user created: %s", user.Uuid)
+		return nil
+	})
+
+	return user, err
 }
 
-func (service *UserServiceImpl) GetAll(ctx context.Context) ([]db.User, error) {
+func (service *UserServiceImpl) GetAll(ctx context.Context) ([]User, error) {
 	u, err := service.datastore.GetAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("fetching all users failed")
-		return []db.User{}, err
+		return []User{}, err
 	}
 
-	return u, nil
+	users := []User{}
+	for _, user := range u {
+		users = append(users, ToUser(user.User, user.UserCredentials))
+	}
+
+	return users, nil
 }
 
-func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (db.User, error) {
+func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (User, error) {
 	u, err := service.datastore.GetUserByEmail(ctx, email)
 	if err != nil {
 		log.Error().Err(err).Msgf("user not found with email %s", email)
-		return db.User{}, err
+		return User{}, err
 	}
 
-	return u, nil
+	return ToUser(u.User, u.UserCredentials), nil
 }
 
-func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (db.User, error) {
+func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (User, error) {
 	u, err := service.datastore.GetUserByID(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("user not found with id %d", id)
-		return db.User{}, err
+		return User{}, err
 	}
 
-	return u, nil
+	return ToUser(u.User, u.UserCredentials), nil
 }
 
 func (service *UserServiceImpl) CheckPassword(password string, hashedPassword string) error {
