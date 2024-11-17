@@ -35,16 +35,25 @@ RETURNING *;
 -- name: GetAllUsers :many
 SELECT sqlc.embed(user), sqlc.embed(user_credentials)
 -- SELECT user.*, user_credentials.*
-FROM user INNER JOIN user_credentials ON user.id = user_credentials.user_id;
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id;
 
 -- name: GetUserByEmail :one
 SELECT sqlc.embed(user), sqlc.embed(user_credentials)
 -- SELECT user.*, user_credentials.*
-FROM user INNER JOIN user_credentials ON user.id = user_credentials.user_id
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE user_credentials.email = ?;
 
 -- name: GetUserByID :one
 SELECT sqlc.embed(user), sqlc.embed(user_credentials)
 -- SELECT user.*, user_credentials.*
-FROM user INNER JOIN user_credentials ON user.id = user_credentials.user_id
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE id = ?;
+
+-- name: GetUserByOauthProvider :one
+SELECT sqlc.embed(user), sqlc.embed(oauth_user)
+FROM user 
+INNER JOIN oauth_user ON user.id = oauth_user.user_id
+WHERE oauth_user.external_user_id = ? AND oauth_user.oauth_provider_id = ?;

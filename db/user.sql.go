@@ -134,7 +134,8 @@ func (q *Queries) CreateUserCredentials(ctx context.Context, arg CreateUserCrede
 
 const getAllUsers = `-- name: GetAllUsers :many
 SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
-FROM user INNER JOIN user_credentials ON user.id = user_credentials.user_id
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
 `
 
 type GetAllUsersRow struct {
@@ -182,7 +183,8 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
-FROM user INNER JOIN user_credentials ON user.id = user_credentials.user_id
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE user_credentials.email = ?
 `
 
@@ -215,7 +217,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
-FROM user INNER JOIN user_credentials ON user.id = user_credentials.user_id
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE id = ?
 `
 
@@ -242,6 +245,44 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, er
 		&i.UserCredentials.Password,
 		&i.UserCredentials.Email,
 		&i.UserCredentials.IsEmailVerified,
+	)
+	return i, err
+}
+
+const getUserByOauthProvider = `-- name: GetUserByOauthProvider :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, oauth_user.oauth_provider_id, oauth_user.user_id, oauth_user.external_user_id, oauth_user.email
+FROM user 
+INNER JOIN oauth_user ON user.id = oauth_user.user_id
+WHERE oauth_user.external_user_id = ? AND oauth_user.oauth_provider_id = ?
+`
+
+type GetUserByOauthProviderParams struct {
+	ExternalUserID  string `json:"externalUserId"`
+	OauthProviderID int64  `json:"oauthProviderId"`
+}
+
+type GetUserByOauthProviderRow struct {
+	User      User      `json:"user"`
+	OauthUser OauthUser `json:"oauthUser"`
+}
+
+func (q *Queries) GetUserByOauthProvider(ctx context.Context, arg GetUserByOauthProviderParams) (GetUserByOauthProviderRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByOauthProvider, arg.ExternalUserID, arg.OauthProviderID)
+	var i GetUserByOauthProviderRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.OauthUser.OauthProviderID,
+		&i.OauthUser.UserID,
+		&i.OauthUser.ExternalUserID,
+		&i.OauthUser.Email,
 	)
 	return i, err
 }

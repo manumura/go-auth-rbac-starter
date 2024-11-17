@@ -25,6 +25,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	// SELECT user.*, user_credentials.*
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
+	GetUserByOauthProvider(ctx context.Context, arg GetUserByOauthProviderParams) (GetUserByOauthProviderRow, error)
 	GetVerifyEmailTokenByToken(ctx context.Context, token string) (VerifyEmailToken, error)
 }
 

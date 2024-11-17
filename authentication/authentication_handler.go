@@ -1,6 +1,8 @@
 package authentication
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"time"
 
@@ -10,6 +12,8 @@ import (
 	"github.com/jaevor/go-nanoid"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
+	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
@@ -58,20 +62,151 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	}
 
 	// Comparing the password with the hash
-	err = h.CheckPassword(req.Password, u.Password)
+	err = h.CheckPassword(req.Password, u.UserCredentials.Password)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
-	now := time.Now().UTC()
 	authenticatedUser := user.ToAuthenticatedUser(u)
 
+	t, err := h.generateTokens(authenticatedUser)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate authentication tokens")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
+	// Save the tokens in the database
+	authReq := AuthenticationRequest{
+		UserID:                u.ID,
+		AccessToken:           t.AccessToken,
+		RefreshToken:          t.RefreshToken,
+		AccessTokenExpiresAt:  t.AccessTokenExpiresAt,
+		RefreshTokenExpiresAt: t.RefreshTokenExpiresAt,
+	}
+	_, err = h.CreateAuthentication(ctx, authReq)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to save authentication token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
+	authResponse := AuthenticationResponse{
+		AccessToken:          t.AccessToken,
+		RefreshToken:         t.RefreshToken,
+		IdToken:              t.IdToken,
+		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
+	}
+
+	ctx.JSON(http.StatusOK, authResponse)
+}
+
+func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
+	var req Oauth2FacebookLoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	// returns nil or ValidationErrors ( []FieldError )
+	err := h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	var u user.UserEntity
+	u, err = h.GetUserByOauthProvider(ctx, oauthprovider.FACEBOOK, req.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
+		return
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		// create user
+		u, err = h.CreateOauth(ctx, user.CreateOauthUserRequest{
+			Name:           req.Name,
+			Email:          req.Email,
+			Role:           role.USER,
+			OauthProvider:  oauthprovider.FACEBOOK,
+			ExternalUserID: req.ID,
+		})
+
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+			return
+		}
+	}
+
+	authenticatedUser := user.ToAuthenticatedUser(u)
+
+	t, err := h.generateTokens(authenticatedUser)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate authentication tokens")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
+	// Save the tokens in the database
+	authReq := AuthenticationRequest{
+		UserID:                u.ID,
+		AccessToken:           t.AccessToken,
+		RefreshToken:          t.RefreshToken,
+		AccessTokenExpiresAt:  t.AccessTokenExpiresAt,
+		RefreshTokenExpiresAt: t.RefreshTokenExpiresAt,
+	}
+	_, err = h.CreateAuthentication(ctx, authReq)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to save authentication token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
+	authResponse := AuthenticationResponse{
+		AccessToken:          t.AccessToken,
+		RefreshToken:         t.RefreshToken,
+		IdToken:              t.IdToken,
+		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
+	}
+
+	ctx.JSON(http.StatusOK, authResponse)
+}
+
+func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
+	var req Oauth2GoogleLoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	// returns nil or ValidationErrors ( []FieldError )
+	err := h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	// TODO
+	// h.GetUserByOauthProvider
+}
+
+type authenticationToken struct {
+	IdToken               string
+	AccessToken           string
+	RefreshToken          string
+	AccessTokenExpiresAt  time.Time
+	RefreshTokenExpiresAt time.Time
+}
+
+func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {
+	now := time.Now().UTC()
 	accessToken, err := nanoid.Standard(21)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate access token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
+		return authenticationToken{}, err
 	}
 	accessTokenAsString := accessToken()
 	accessTokenExpiresAt := now.Add(time.Duration(h.AccessTokenExpiresInAsSeconds) * time.Second)
@@ -79,8 +214,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	refreshToken, err := nanoid.Standard(21)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate refresh token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
+		return authenticationToken{}, err
 	}
 	refreshTokenAsString := refreshToken()
 	refreshTokenExpiresAt := now.Add(time.Duration(h.RefreshTokenExpiresInAsSeconds) * time.Second)
@@ -95,31 +229,14 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	idTokenAsString, err := idToken.SignedString([]byte(h.JwtSecret))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create id token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
+		return authenticationToken{}, err
 	}
 
-	// Save the tokens in the database
-	authReq := AuthenticationRequest{
-		UserID:                u.ID,
+	return authenticationToken{
 		AccessToken:           accessTokenAsString,
 		RefreshToken:          refreshTokenAsString,
+		IdToken:               idTokenAsString,
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshTokenExpiresAt: refreshTokenExpiresAt,
-	}
-	_, err = h.CreateAuthentication(ctx, authReq)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to save authentication token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
-	}
-
-	authResponse := AuthenticationResponse{
-		AccessToken:          accessTokenAsString,
-		RefreshToken:         refreshTokenAsString,
-		IdToken:              idTokenAsString,
-		AccessTokenExpiresAt: accessTokenExpiresAt,
-	}
-
-	ctx.JSON(http.StatusOK, authResponse)
+	}, nil
 }

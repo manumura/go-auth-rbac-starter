@@ -28,6 +28,8 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup.GET("/index", server.index)
 	publicRouterGroup.POST("/register", userHandler.Register)
 	publicRouterGroup.POST("/login", authenticationHandler.Login)
+	publicRouterGroup.POST("/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
+	publicRouterGroup.POST("/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
 
 	authRoutes := publicRouterGroup.Use(middleware.AuthMiddleware(authenticationService, userService))
 	authRoutes.GET("/profile", profileHandler.GetProfile)

@@ -8,6 +8,17 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type Oauth2FacebookLoginRequest struct {
+	ID    string `json:"id" validate:"required"`
+	Email string `json:"email" validate:"required,email"`
+	Name  string `json:"name" validate:"required"`
+	// Picture string `json:"picture"`
+}
+
+type Oauth2GoogleLoginRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
 type AuthenticationRequest struct {
 	UserID                int64     `json:"userId"`
 	AccessToken           string    `json:"accessToken"`

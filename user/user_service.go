@@ -7,16 +7,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/db"
+	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {
-	Create(ctx context.Context, req CreateUserRequest) (User, error)
-	GetAll(ctx context.Context) ([]User, error)
-	GetByEmail(ctx context.Context, email string) (User, error)
-	GetByID(ctx context.Context, id int64) (User, error)
+	Create(ctx context.Context, req CreateUserRequest) (UserEntity, error)
+	CreateOauth(ctx context.Context, req CreateOauthUserRequest) (UserEntity, error)
+	GetAll(ctx context.Context) ([]UserEntity, error)
+	GetByEmail(ctx context.Context, email string) (UserEntity, error)
+	GetByID(ctx context.Context, id int64) (UserEntity, error)
+	GetUserByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
 }
 
@@ -28,22 +31,25 @@ func NewUserService(datastore db.DataStore) UserService {
 	roleService := role.NewRoleService(datastore)
 	roleService.InitRolesMaps(context.Background())
 
+	oauthProviderService := oauthprovider.NewOauthProviderService(datastore)
+	oauthProviderService.InitProvidersMaps(context.Background())
+
 	return &UserServiceImpl{
 		datastore: datastore,
 	}
 }
 
-func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserRequest) (User, error) {
+func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserRequest) (UserEntity, error) {
 	now := time.Now().UTC()
 	nowAsString := now.Format(time.DateTime)
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error().Err(err).Msg(err.Error())
-		return User{}, err
+		return UserEntity{}, err
 	}
 
-	var user User
+	var user UserEntity
 	err = service.datastore.ExecTx(ctx, func(q *db.Queries) error {
 		var err error
 
@@ -76,7 +82,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 			return err
 		}
 
-		user = ToUser(u, uc)
+		user = UserCredentialsToUserEntity(u, uc)
 		log.Info().Msgf("new user created: %s", user.Uuid)
 		return nil
 	})
@@ -84,39 +90,100 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 	return user, err
 }
 
-func (service *UserServiceImpl) GetAll(ctx context.Context) ([]User, error) {
+func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauthUserRequest) (UserEntity, error) {
+	now := time.Now().UTC()
+	nowAsString := now.Format(time.DateTime)
+
+	var user UserEntity
+	err := service.datastore.ExecTx(ctx, func(q *db.Queries) error {
+		var err error
+
+		log.Info().Msg("creating new user")
+		p := db.CreateUserParams{
+			Uuid:      uuid.New().String(),
+			Name:      req.Name,
+			IsActive:  1,
+			RoleID:    role.RoleNameToID[req.Role.String()],
+			CreatedAt: nowAsString,
+			UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
+		}
+
+		u, err := q.CreateUser(ctx, p)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return err
+		}
+
+		log.Info().Msg("creating new oauth user")
+		oup := db.CreateOauthUserParams{
+			UserID:          u.ID,
+			OauthProviderID: oauthprovider.OauthProviderNameToID[req.OauthProvider.String()],
+			ExternalUserID:  req.ExternalUserID,
+			Email:           req.Email,
+		}
+
+		ou, err := q.CreateOauthUser(ctx, oup)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return err
+		}
+
+		user = OauthUserToUserEntity(u, ou)
+		log.Info().Msgf("new user created: %s", user.Uuid)
+		return nil
+	})
+
+	return user, err
+}
+
+func (service *UserServiceImpl) GetAll(ctx context.Context) ([]UserEntity, error) {
 	u, err := service.datastore.GetAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("fetching all users failed")
-		return []User{}, err
+		return []UserEntity{}, err
 	}
 
-	users := []User{}
+	users := []UserEntity{}
 	for _, user := range u {
-		users = append(users, ToUser(user.User, user.UserCredentials))
+		users = append(users, UserCredentialsToUserEntity(user.User, user.UserCredentials))
 	}
 
 	return users, nil
 }
 
-func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (User, error) {
+func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (UserEntity, error) {
 	u, err := service.datastore.GetUserByEmail(ctx, email)
 	if err != nil {
 		log.Error().Err(err).Msgf("user not found with email %s", email)
-		return User{}, err
+		return UserEntity{}, err
 	}
 
-	return ToUser(u.User, u.UserCredentials), nil
+	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
 }
 
-func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (User, error) {
+func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (UserEntity, error) {
 	u, err := service.datastore.GetUserByID(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("user not found with id %d", id)
-		return User{}, err
+		return UserEntity{}, err
 	}
 
-	return ToUser(u.User, u.UserCredentials), nil
+	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
+}
+
+func (service *UserServiceImpl) GetUserByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error) {
+	p := db.GetUserByOauthProviderParams{
+		ExternalUserID:  externalUserID,
+		OauthProviderID: oauthprovider.OauthProviderNameToID[provider.String()],
+	}
+
+	u, err := service.datastore.GetUserByOauthProvider(ctx, p)
+	if err != nil {
+		log.Error().Err(err).Msgf("user not found with provider %s and external User ID %s", provider, externalUserID)
+		return UserEntity{}, err
+	}
+
+	return OauthUserToUserEntity(u.User, u.OauthUser), nil
 }
 
 func (service *UserServiceImpl) CheckPassword(password string, hashedPassword string) error {
