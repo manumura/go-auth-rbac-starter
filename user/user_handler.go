@@ -33,25 +33,25 @@ func NewUserHandler(service UserService, validate *validator.Validate) UserHandl
 func (h *UserHandler) Register(ctx *gin.Context) {
 	var req RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByEmail(ctx, req.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	if u.Uuid != uuid.Nil {
 		log.Error().Msg("email already exists")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(errors.New("cannot register with this email")))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	u, err := h.GetAll(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 

@@ -33,7 +33,7 @@ func NewAuthenticationHandler(userService user.UserService, authenticationServic
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -41,26 +41,26 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByEmail(ctx, req.Email)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrNotFound))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
 	if !u.IsActive {
 		log.Error().Msg("user is not active")
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrNotFound))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
 	// Comparing the password with the hash
 	err = h.CheckPassword(req.Password, u.Password)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrInvalidPassword))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	accessToken, err := nanoid.Standard(21)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate access token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	accessTokenAsString := accessToken()
@@ -79,7 +79,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	refreshToken, err := nanoid.Standard(21)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate refresh token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	refreshTokenAsString := refreshToken()
@@ -95,7 +95,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	idTokenAsString, err := idToken.SignedString([]byte(h.JwtSecret))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create id token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 
@@ -110,7 +110,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	_, err = h.CreateAuthentication(ctx, authReq)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save authentication token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 

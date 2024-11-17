@@ -1,7 +1,6 @@
 package profile
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,13 +22,13 @@ func NewProfileHandler(userService user.UserService) ProfileHandler {
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	val, exists := ctx.Get(middleware.AuthenticatedUserKey)
 	if !exists {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New("user not authenticated")))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	u, ok := val.(user.AuthenticatedUser)
 	if !ok {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New("user not authenticated")))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 

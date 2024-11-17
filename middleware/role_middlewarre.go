@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -16,13 +15,13 @@ func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		val, exists := ctx.Get(AuthenticatedUserKey)
 		if !exists {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(errors.New("user not authenticated")))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 
 		u, ok := val.(user.AuthenticatedUser)
 		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(errors.New("user not authenticated")))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 
@@ -30,7 +29,7 @@ func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 		ok = slices.Contains(roles, u.Role)
 
 		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(errors.New("user not allowed to access this resource")))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 

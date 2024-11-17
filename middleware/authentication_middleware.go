@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	invalidAccessTokenErrorMessage = "invalid access token"
-	authorizationHeaderKey         = "authorization"
-	authorizationTypeBearer        = "bearer"
-	AuthenticatedUserKey           = "user"
+	authorizationHeaderKey  = "authorization"
+	authorizationTypeBearer = "bearer"
+	AuthenticatedUserKey    = "user"
 )
 
 func AuthMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
@@ -27,21 +26,21 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 
 		if len(authorizationHeader) == 0 {
 			err := errors.New("authorization header not found")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
 			return
 		}
 
 		fields := strings.Fields(authorizationHeader)
 		if len(fields) < 2 {
 			err := errors.New("invalid authorization header")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
 			return
 		}
 
 		authorizationType := strings.ToLower(fields[0])
 		if authorizationType != authorizationTypeBearer {
 			err := fmt.Errorf("unsupported authorization type %s", authorizationType)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
 			return
 		}
 
@@ -49,28 +48,28 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 		a, err := authenticationService.GetByAccessToken(ctx, accessToken)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting authentication from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
 			return
 		}
 
 		accessTokenExpiresAt, err := time.Parse(time.DateTime, a.AccessTokenExpiresAt)
 		if err != nil {
 			log.Error().Err(err).Msg("error parsing access token expiry time")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
 			return
 		}
 
 		now := time.Now().UTC()
 		if accessTokenExpiresAt.Before(now) {
 			log.Error().Msg("access token expired")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
 			return
 		}
 
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(errors.New(invalidAccessTokenErrorMessage)))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
 			return
 		}
 
