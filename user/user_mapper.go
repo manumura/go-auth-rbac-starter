@@ -44,21 +44,6 @@ func UserCredentialsToUserEntity(user db.User, userCredentials db.UserCredential
 	}
 }
 
-func ToAuthenticatedUser(user UserEntity) AuthenticatedUser {
-	authenticatedUser := AuthenticatedUser{}
-	copier.Copy(&authenticatedUser, &user)
-	return authenticatedUser
-}
-
-func ToAuthenticatedUsers(users []UserEntity) []AuthenticatedUser {
-	authenticatedUsers := []AuthenticatedUser{}
-	for _, u := range users {
-		authenticatedUser := ToAuthenticatedUser(u)
-		authenticatedUsers = append(authenticatedUsers, authenticatedUser)
-	}
-	return authenticatedUsers
-}
-
 func OauthUserToUserEntity(user db.User, oauthUser db.OauthUser) UserEntity {
 	c, err := time.Parse(time.DateTime, user.CreatedAt)
 	if err != nil {
@@ -91,4 +76,19 @@ func OauthUserToUserEntity(user db.User, oauthUser db.OauthUser) UserEntity {
 			Email:           oauthUser.Email,
 		},
 	}
+}
+
+func ToAuthenticatedUser(user UserEntity) AuthenticatedUser {
+	authenticatedUser := AuthenticatedUser{}
+	copier.Copy(&authenticatedUser, &user)
+	return authenticatedUser
+}
+
+func ToAuthenticatedUsers(users []UserEntity) []AuthenticatedUser {
+	authenticatedUsers := []AuthenticatedUser{}
+	for _, u := range users {
+		authenticatedUser := ToAuthenticatedUser(u)
+		authenticatedUsers = append(authenticatedUsers, authenticatedUser)
+	}
+	return authenticatedUsers
 }

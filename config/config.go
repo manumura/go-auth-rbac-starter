@@ -10,6 +10,7 @@ type Config struct {
 	RefreshTokenExpiresInAsSeconds int    `mapstructure:"REFRESH_TOKEN_EXPIRES_IN_AS_SECONDS"`
 	IdTokenExpiresInAsSeconds      int    `mapstructure:"ID_TOKEN_EXPIRES_IN_AS_SECONDS"`
 	JwtSecret                      string `mapstructure:"JWT_SECRET"`
+	GoogleClientId                 string `mapstructure:"GOOGLE_CLIENT_ID"`
 	DatabaseUrl                    string `mapstructure:"DATABASE_URL"`
 	MaxOpenConnections             int    `mapstructure:"DATABASE_MAX_OPEN_CONNECTIONS"`
 	MaxIdleConnections             int    `mapstructure:"DATABASE_MAX_IDLE_CONNECTIONS"`
