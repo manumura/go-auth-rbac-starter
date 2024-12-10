@@ -6,6 +6,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/message"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/profile"
 	"github.com/manumura/go-auth-rbac-starter/role"
@@ -15,9 +16,10 @@ import (
 func (server *HttpServer) SetupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	userService := user.NewUserService(server.datastore)
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
+	emailService := message.NewEmailService(config)
 
 	userHandler := user.NewUserHandler(userService, validate)
-	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, emailService, config, validate)
 	profileHandler := profile.NewProfileHandler(userService)
 
 	router := gin.Default()
@@ -30,6 +32,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup.POST("/login", authenticationHandler.Login)
 	publicRouterGroup.POST("/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
 	publicRouterGroup.POST("/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
+	publicRouterGroup.POST("/verify-email", authenticationHandler.VerifyEmail)
 
 	authRoutes := publicRouterGroup.Use(middleware.AuthMiddleware(authenticationService, userService))
 	authRoutes.GET("/profile", profileHandler.GetProfile)

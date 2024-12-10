@@ -7,6 +7,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
+// TODO UserChangeEvent
 func (s *GrpcServer) GetUserEvents(req *pb.UserEventsRequest, stream pb.UserEvent_GetUserEventsServer) error {
 
 	fmt.Println("GetUserEvents called")

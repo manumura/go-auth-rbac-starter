@@ -76,6 +76,26 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	// 	Data: fmt.Sprintf("Event %d data", 1),
 	// }
 
+	// TODO email
+	// Send email with link to verify email
+	// this.logger.verbose(`[EMAIL][REGISTER] Sending email to: ${email}`);
+	// this.emailService
+	//   .sendRegistrationEmail(email, 'en', verifyEmailToken)
+	//   .then((result) => {
+	//     this.logger.verbose(`[EMAIL][REGISTER] Result Sending email: ${JSON.stringify(result)}`);
+	//   })
+	//   .catch((err) => this.logger.error(err));
+
+	// Send new user email to root user
+	// const rootUserEmail = appConfig.ROOT_ACCOUNT_EMAIL;
+	// this.logger.verbose(`[EMAIL][NEW_USER] Sending email to: ${rootUserEmail}`);
+	// this.emailService
+	//   .sendNewUserEmail(rootUserEmail, 'en', email)
+	//   .then((result) => {
+	//     this.logger.verbose(`[EMAIL][NEW_USER] Result Sending email: ${JSON.stringify(result)}`);
+	//   })
+	//   .catch((err) => this.logger.error(err));
+
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/jaevor/go-nanoid"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/message"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/user"
@@ -24,6 +25,7 @@ import (
 type AuthenticationHandler struct {
 	user.UserService
 	AuthenticationService
+	message.EmailService
 	config.Config
 	*validator.Validate
 }
@@ -36,13 +38,22 @@ type authenticationToken struct {
 	RefreshTokenExpiresAt time.Time
 }
 
-func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, config config.Config, validate *validator.Validate) AuthenticationHandler {
+func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, emailService message.EmailService, config config.Config, validate *validator.Validate) AuthenticationHandler {
 	return AuthenticationHandler{
 		userService,
 		authenticationService,
+		emailService,
 		config,
 		validate,
 	}
+}
+
+func (h *AuthenticationHandler) VerifyEmail(ctx *gin.Context) {
+	// var req VerifyEmailRequest
+	// if err := ctx.ShouldBindJSON(&req); err != nil {
+	// 	ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+	// 	return
+	// }
 }
 
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
@@ -109,6 +120,21 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		IdToken:              t.IdToken,
 		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
 	}
+
+	// TODO
+	err = h.EmailService.SendRegistrationEmail("emmanuel.mura@gmail.com", "", "token")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to send email")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
+	go h.EmailService.SendNewUserEmail("emmanuel.mura@gmail.com", "", "newUserEmail")
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("failed to send email")
+	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+	// 	return
+	// }
 
 	ctx.JSON(http.StatusOK, authResponse)
 }
