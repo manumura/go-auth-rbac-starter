@@ -20,6 +20,7 @@ type UserEntity struct {
 	UpdatedAt         *time.Time        `json:"updatedAt"`
 	UserCredentials   UserCredentials   `json:"userCredentials"`
 	OauthUserProvider OauthUserProvider `json:"oauthProvider"`
+	VerifyEmailToken  string            `json:"verifyEmailToken"`
 }
 
 type UserCredentials struct {

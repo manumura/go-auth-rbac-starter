@@ -136,7 +136,7 @@ func (service *EmailServiceImpl) SendEmail(to string, subject string, body strin
 	d := gomail.NewDialer(c.SmtpHost, c.SmtpPort, c.SmtpUser, c.SmtpPassword)
 	err := d.DialAndSend(m)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to send email")
+		log.Error().Err(err).Msgf("failed to send email to %s with subject %s", to, subject)
 	}
 
 	return err

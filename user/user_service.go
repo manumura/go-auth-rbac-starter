@@ -13,6 +13,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	VERIFY_EMAIL_TOKEN_EXPIRY_DURATION_IN_HOURS = 24
+)
+
 type UserService interface {
 	Create(ctx context.Context, req CreateUserRequest) (UserEntity, error)
 	CreateOauth(ctx context.Context, req CreateOauthUserRequest) (UserEntity, error)
@@ -82,7 +86,22 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 			return err
 		}
 
-		user = UserCredentialsToUserEntity(u, uc)
+		log.Info().Msg("creating email verification token")
+		token := uuid.New().String()
+		vetp := db.CreateVerifyEmailTokenParams{
+			UserID:    u.ID,
+			Token:     token,
+			ExpiredAt: now.Add(time.Hour * VERIFY_EMAIL_TOKEN_EXPIRY_DURATION_IN_HOURS).Format(time.DateTime),
+			CreatedAt: nowAsString,
+			UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
+		}
+		_, err = q.CreateVerifyEmailToken(ctx, vetp)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return err
+		}
+
+		user = UserCredentialsWithVerifyEmailTokenToUserEntity(u, uc, token)
 		log.Info().Msgf("new user created: %s", user.Uuid)
 		return nil
 	})

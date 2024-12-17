@@ -18,8 +18,8 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
 	emailService := message.NewEmailService(config)
 
-	userHandler := user.NewUserHandler(userService, validate)
-	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, emailService, config, validate)
+	userHandler := user.NewUserHandler(userService, emailService, config, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
 	profileHandler := profile.NewProfileHandler(userService)
 
 	router := gin.Default()

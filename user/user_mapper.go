@@ -44,6 +44,12 @@ func UserCredentialsToUserEntity(user db.User, userCredentials db.UserCredential
 	}
 }
 
+func UserCredentialsWithVerifyEmailTokenToUserEntity(user db.User, userCredentials db.UserCredentials, verifyEmailToken string) UserEntity {
+	u := UserCredentialsToUserEntity(user, userCredentials)
+	u.VerifyEmailToken = verifyEmailToken
+	return u
+}
+
 func OauthUserToUserEntity(user db.User, oauthUser db.OauthUser) UserEntity {
 	c, err := time.Parse(time.DateTime, user.CreatedAt)
 	if err != nil {
