@@ -18,6 +18,7 @@ var (
 	ErrInvalidEmail         = errors.New("invalid email")
 	ErrForbidden            = errors.New("user not allowed to access this resource")
 	ErrUnauthorized         = errors.New("user not authenticated")
+	ErrTokenExpired         = errors.New("token expired")
 )
 
 func ErrorResponse(err error, statusCode int) gin.H {

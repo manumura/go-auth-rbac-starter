@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func UserCredentialsToUserEntity(user db.User, userCredentials db.UserCredentials) UserEntity {
+func UserToUserEntity(user db.User) UserEntity {
 	c, err := time.Parse(time.DateTime, user.CreatedAt)
 	if err != nil {
 		log.Error().Err(err).Msg("error parsing created at")
@@ -36,16 +36,27 @@ func UserCredentialsToUserEntity(user db.User, userCredentials db.UserCredential
 		Role:      role.Role(role.RoleIDToName[user.RoleID]),
 		CreatedAt: &c,
 		UpdatedAt: &u,
-		UserCredentials: UserCredentials{
-			Password:        userCredentials.Password,
-			Email:           userCredentials.Email,
-			IsEmailVerified: userCredentials.IsEmailVerified == 1,
-		},
 	}
 }
 
-func UserCredentialsWithVerifyEmailTokenToUserEntity(user db.User, userCredentials db.UserCredentials, verifyEmailToken string) UserEntity {
+func UserCredentialsToUserEntity(user db.User, userCredentials db.UserCredentials) UserEntity {
+	u := UserToUserEntity(user)
+	u.UserCredentials = UserCredentials{
+		Password:        userCredentials.Password,
+		Email:           userCredentials.Email,
+		IsEmailVerified: userCredentials.IsEmailVerified == 1,
+	}
+	return u
+}
+
+func UserCredentialsWithVerifyEmailTokenToUserEntity(user db.User, userCredentials db.UserCredentials, verifyEmailToken VerifyEmailToken) UserEntity {
 	u := UserCredentialsToUserEntity(user, userCredentials)
+	u.VerifyEmailToken = verifyEmailToken
+	return u
+}
+
+func UserWithVerifyEmailTokenToUserEntity(user db.User, verifyEmailToken VerifyEmailToken) UserEntity {
+	u := UserToUserEntity(user)
 	u.VerifyEmailToken = verifyEmailToken
 	return u
 }

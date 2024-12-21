@@ -20,7 +20,7 @@ type UserEntity struct {
 	UpdatedAt         *time.Time        `json:"updatedAt"`
 	UserCredentials   UserCredentials   `json:"userCredentials"`
 	OauthUserProvider OauthUserProvider `json:"oauthProvider"`
-	VerifyEmailToken  string            `json:"verifyEmailToken"`
+	VerifyEmailToken  VerifyEmailToken  `json:"verifyEmailToken"`
 }
 
 type UserCredentials struct {
@@ -33,6 +33,11 @@ type OauthUserProvider struct {
 	OauthProviderID int64       `json:"oauthProviderId"`
 	ExternalUserID  string      `json:"externalUserId"`
 	Email           interface{} `json:"email"`
+}
+
+type VerifyEmailToken struct {
+	Token     string `json:"token"`
+	ExpiredAt string `json:"expiredAt"`
 }
 
 type AuthenticatedUser struct {

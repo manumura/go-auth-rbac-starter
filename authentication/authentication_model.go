@@ -33,3 +33,7 @@ type AuthenticationResponse struct {
 	IdToken              string    `json:"idToken"`
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
 }
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required"`
+}

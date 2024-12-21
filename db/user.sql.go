@@ -286,3 +286,53 @@ func (q *Queries) GetUserByOauthProvider(ctx context.Context, arg GetUserByOauth
 	)
 	return i, err
 }
+
+const getUserByVerifyEmailToken = `-- name: GetUserByVerifyEmailToken :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, verify_email_token.user_id, verify_email_token.token, verify_email_token.expired_at, verify_email_token.created_at, verify_email_token.updated_at
+FROM user
+INNER JOIN verify_email_token ON user.id = verify_email_token.user_id
+WHERE verify_email_token.token = ?
+`
+
+type GetUserByVerifyEmailTokenRow struct {
+	User             User             `json:"user"`
+	VerifyEmailToken VerifyEmailToken `json:"verifyEmailToken"`
+}
+
+func (q *Queries) GetUserByVerifyEmailToken(ctx context.Context, token string) (GetUserByVerifyEmailTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByVerifyEmailToken, token)
+	var i GetUserByVerifyEmailTokenRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.VerifyEmailToken.UserID,
+		&i.VerifyEmailToken.Token,
+		&i.VerifyEmailToken.ExpiredAt,
+		&i.VerifyEmailToken.CreatedAt,
+		&i.VerifyEmailToken.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateUserIsEmailVerified = `-- name: UpdateUserIsEmailVerified :exec
+UPDATE user_credentials
+SET is_email_verified = ?
+WHERE user_id = ?
+`
+
+type UpdateUserIsEmailVerifiedParams struct {
+	IsEmailVerified int64       `json:"isEmailVerified"`
+	UserID          interface{} `json:"userId"`
+}
+
+func (q *Queries) UpdateUserIsEmailVerified(ctx context.Context, arg UpdateUserIsEmailVerifiedParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserIsEmailVerified, arg.IsEmailVerified, arg.UserID)
+	return err
+}

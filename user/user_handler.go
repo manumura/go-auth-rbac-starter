@@ -83,12 +83,12 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	// }
 
 	// Send email with link to verify email
-	err = h.EmailService.SendRegistrationEmail(user.UserCredentials.Email, "", user.VerifyEmailToken)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to send email")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
-	}
+	go h.EmailService.SendRegistrationEmail(user.UserCredentials.Email, "", user.VerifyEmailToken.Token)
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("failed to send email")
+	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+	// 	return
+	// }
 
 	// Send new user email to root user
 	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", user.UserCredentials.Email)
