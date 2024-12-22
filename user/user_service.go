@@ -23,7 +23,8 @@ type UserService interface {
 	GetAll(ctx context.Context) ([]UserEntity, error)
 	GetByEmail(ctx context.Context, email string) (UserEntity, error)
 	GetByID(ctx context.Context, id int64) (UserEntity, error)
-	GetUserByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
+	GetByUUID(ctx context.Context, uuid string) (UserEntity, error)
+	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
 }
 
@@ -194,7 +195,17 @@ func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (UserEnti
 	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
 }
 
-func (service *UserServiceImpl) GetUserByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error) {
+func (service *UserServiceImpl) GetByUUID(ctx context.Context, uuid string) (UserEntity, error) {
+	u, err := service.datastore.GetUserByUUID(ctx, uuid)
+	if err != nil {
+		log.Error().Err(err).Msgf("user not found with UUID %s", uuid)
+		return UserEntity{}, err
+	}
+
+	return UserToUserEntity(u), nil
+}
+
+func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error) {
 	p := db.GetUserByOauthProviderParams{
 		ExternalUserID:  externalUserID,
 		OauthProviderID: oauthprovider.OauthProviderNameToID[provider.String()],

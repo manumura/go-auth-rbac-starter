@@ -13,7 +13,8 @@ type AuthenticationService interface {
 	CreateAuthentication(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error)
 	GetByAccessToken(ctx context.Context, token string) (db.AuthenticationToken, error)
 	GetUserByVerifyEmailToken(ctx context.Context, token string) (user.UserEntity, error)
-	UpdateIsEmailVerified(ctx context.Context, userID int64) error
+	DeleteAuthenticationTokenByUserID(ctx context.Context, userID int64) error
+	UpdateUserIsEmailVerified(ctx context.Context, userID int64) error
 }
 
 type AuthenticationServiceImpl struct {
@@ -75,7 +76,12 @@ func (service *AuthenticationServiceImpl) GetUserByVerifyEmailToken(ctx context.
 	return u, err
 }
 
-func (service *AuthenticationServiceImpl) UpdateIsEmailVerified(ctx context.Context, userID int64) error {
+func (service *AuthenticationServiceImpl) DeleteAuthenticationTokenByUserID(ctx context.Context, userID int64) error {
+	err := service.datastore.DeleteAuthenticationToken(ctx, userID)
+	return err
+}
+
+func (service *AuthenticationServiceImpl) UpdateUserIsEmailVerified(ctx context.Context, userID int64) error {
 	err := service.datastore.ExecTx(ctx, func(q *db.Queries) error {
 		var err error
 

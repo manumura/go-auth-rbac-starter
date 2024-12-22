@@ -52,6 +52,11 @@ FROM user
 INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE id = ?;
 
+-- name: GetUserByUUID :one
+SELECT user.*
+FROM user
+WHERE uuid = ?;
+
 -- name: GetUserByOauthProvider :one
 SELECT sqlc.embed(user), sqlc.embed(oauth_user)
 FROM user 

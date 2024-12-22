@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/exception"
-	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
@@ -20,14 +19,8 @@ func NewProfileHandler(userService user.UserService) ProfileHandler {
 }
 
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
-	val, exists := ctx.Get(middleware.AuthenticatedUserKey)
-	if !exists {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
-		return
-	}
-
-	u, ok := val.(user.AuthenticatedUser)
-	if !ok {
+	u, err := user.GetUserFromContext(ctx)
+	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}

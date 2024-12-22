@@ -75,7 +75,7 @@ func (h *AuthenticationHandler) VerifyEmail(ctx *gin.Context) {
 	}
 
 	log.Info().Msgf("update user is email verified by user ID: %d", u.ID)
-	err = h.UpdateIsEmailVerified(ctx, u.ID)
+	err = h.UpdateUserIsEmailVerified(ctx, u.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to verify email")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
@@ -152,7 +152,31 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
 	}
 
+	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
+}
+
+func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
+	authenticatedUser, err := user.GetUserFromContext(ctx)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		return
+	}
+
+	u, err := h.GetByUUID(ctx, authenticatedUser.Uuid.String())
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(exception.ErrNotFound, http.StatusNotFound))
+		return
+	}
+
+	err = h.DeleteAuthenticationTokenByUserID(ctx, u.ID)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
+	log.Info().Msgf("user %s logged out", authenticatedUser.Uuid)
+	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
 func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
@@ -170,7 +194,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 		return
 	}
 
-	authResponse, err := h.authenticate(req.ID, oauthprovider.FACEBOOK, req.Name, req.Email, ctx)
+	authResponse, authenticatedUser, err := h.authenticate(req.ID, oauthprovider.FACEBOOK, req.Name, req.Email, ctx)
 	if err != nil {
 		if err == exception.ErrLogin {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
@@ -180,6 +204,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 		return
 	}
 
+	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
@@ -210,7 +235,7 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	email := tokenPayload.Claims["email"].(string)
 	name := tokenPayload.Claims["name"].(string)
 
-	authResponse, err := h.authenticate(id, oauthprovider.GOOGLE, name, email, ctx)
+	authResponse, authenticatedUser, err := h.authenticate(id, oauthprovider.GOOGLE, name, email, ctx)
 	if err != nil {
 		if err == exception.ErrLogin {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
@@ -220,16 +245,17 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 		return
 	}
 
+	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
-func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, error) {
+func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
 	var u user.UserEntity
-	u, err := h.GetUserByOauthProvider(ctx, p, id)
+	u, err := h.GetByOauthProvider(ctx, p, id)
 	// Error is other than user not found
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		// ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
-		return AuthenticationResponse{}, exception.ErrLogin
+		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrLogin
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -244,7 +270,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 
 		if err != nil {
 			// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
-			return AuthenticationResponse{}, err
+			return AuthenticationResponse{}, user.AuthenticatedUser{}, err
 		}
 	}
 
@@ -254,7 +280,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate authentication tokens")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	// Save the tokens in the database
@@ -269,7 +295,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save authentication token")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	authResponse := AuthenticationResponse{
@@ -278,7 +304,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 		IdToken:              t.IdToken,
 		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
 	}
-	return authResponse, nil
+	return authResponse, authenticatedUser, nil
 }
 
 func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {

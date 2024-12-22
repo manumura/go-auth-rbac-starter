@@ -13,7 +13,7 @@ import (
 
 func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		val, exists := ctx.Get(AuthenticatedUserKey)
+		val, exists := ctx.Get(user.AuthenticatedUserKey)
 		if !exists {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return

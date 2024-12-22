@@ -287,6 +287,29 @@ func (q *Queries) GetUserByOauthProvider(ctx context.Context, arg GetUserByOauth
 	return i, err
 }
 
+const getUserByUUID = `-- name: GetUserByUUID :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id
+FROM user
+WHERE uuid = ?
+`
+
+func (q *Queries) GetUserByUUID(ctx context.Context, uuid string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUUID, uuid)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.Name,
+		&i.IsActive,
+		&i.ImageID,
+		&i.ImageUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RoleID,
+	)
+	return i, err
+}
+
 const getUserByVerifyEmailToken = `-- name: GetUserByVerifyEmailToken :one
 SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, verify_email_token.user_id, verify_email_token.token, verify_email_token.expired_at, verify_email_token.created_at, verify_email_token.updated_at
 FROM user
