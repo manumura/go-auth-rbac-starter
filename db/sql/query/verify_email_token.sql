@@ -2,7 +2,7 @@
 INSERT INTO verify_email_token (
         user_id,
         token,
-        expired_at,
+        expires_at,
         created_at,
         updated_at
     )

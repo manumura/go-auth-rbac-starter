@@ -22,30 +22,31 @@ const (
 
 func AuthMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		a, err := getAuthenticationToken(ctx, authenticationService)
+		a, err := getAuthenticationFromAccessToken(ctx, authenticationService)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
+		// Check validity of token
 		accessTokenExpiresAt, err := time.Parse(time.DateTime, a.AccessTokenExpiresAt)
 		if err != nil {
 			log.Error().Err(err).Msg("error parsing access token expiry time")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
 		now := time.Now().UTC()
 		if accessTokenExpiresAt.Before(now) {
 			log.Error().Msg("access token expired")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -56,11 +57,48 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 	}
 }
 
-func LogoutMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
+func RefreshAuthMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		a, err := getAuthenticationToken(ctx, authenticationService)
+		a, err := getAuthenticationFromRefreshToken(ctx, authenticationService)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			return
+		}
+
+		// Check validity of token
+		refreshTokenExpiresAt, err := time.Parse(time.DateTime, a.RefreshTokenExpiresAt)
+		if err != nil {
+			log.Error().Err(err).Msg("error parsing refresh token expiry time")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			return
+		}
+
+		now := time.Now().UTC()
+		if refreshTokenExpiresAt.Before(now) {
+			log.Error().Msg("refresh token expired")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			return
+		}
+
+		u, err := userService.GetByID(ctx, a.UserID)
+		if err != nil {
+			log.Error().Err(err).Msg("error getting user from DB")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			return
+		}
+
+		authenticatedUser := user.ToAuthenticatedUser(u)
+		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
+		ctx.Set(user.AuthenticatedUserKey, authenticatedUser)
+		ctx.Next()
+	}
+}
+
+func LogoutAuthMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		a, err := getAuthenticationFromAccessToken(ctx, authenticationService)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -68,7 +106,7 @@ func LogoutMiddleware(authenticationService authentication.AuthenticationService
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -79,8 +117,8 @@ func LogoutMiddleware(authenticationService authentication.AuthenticationService
 	}
 }
 
-func getAuthenticationToken(ctx *gin.Context, authenticationService authentication.AuthenticationService) (db.AuthenticationToken, error) {
-	accessToken, err := extractAccessTokenFromHeader(ctx)
+func getAuthenticationFromAccessToken(ctx *gin.Context, authenticationService authentication.AuthenticationService) (db.AuthenticationToken, error) {
+	accessToken, err := extractTokenFromHeader(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error extracting access token from header")
 		return db.AuthenticationToken{}, err
@@ -95,7 +133,23 @@ func getAuthenticationToken(ctx *gin.Context, authenticationService authenticati
 	return a, nil
 }
 
-func extractAccessTokenFromHeader(ctx *gin.Context) (string, error) {
+func getAuthenticationFromRefreshToken(ctx *gin.Context, authenticationService authentication.AuthenticationService) (db.AuthenticationToken, error) {
+	refreshToken, err := extractTokenFromHeader(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("error extracting refresh token from header")
+		return db.AuthenticationToken{}, err
+	}
+
+	a, err := authenticationService.GetByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting authentication from DB")
+		return db.AuthenticationToken{}, err
+	}
+
+	return a, nil
+}
+
+func extractTokenFromHeader(ctx *gin.Context) (string, error) {
 	authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
 
 	if len(authorizationHeader) == 0 {

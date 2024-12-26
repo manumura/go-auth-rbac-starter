@@ -13,6 +13,10 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
+const (
+	prefix = "/api"
+)
+
 func (server *HttpServer) SetupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	userService := user.NewUserService(server.datastore)
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
@@ -26,23 +30,31 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 	router.Use(middleware.SecurityMiddleware())
 
-	publicRouterGroup := router.Group("/api/v1")
-	publicRouterGroup.GET("/index", server.index)
-	publicRouterGroup.POST("/register", userHandler.Register)
-	publicRouterGroup.POST("/login", authenticationHandler.Login)
-	// TODO refresh token
-	publicRouterGroup.POST("/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
-	publicRouterGroup.POST("/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
-	publicRouterGroup.POST("/verify-email", authenticationHandler.VerifyEmail)
+	publicRouterGroup := router.Group(prefix)
+	publicRouterGroup.GET("/v1/index", server.index)
+	publicRouterGroup.POST("/v1/register", userHandler.Register)
+	publicRouterGroup.POST("/v1/login", authenticationHandler.Login)
+	publicRouterGroup.POST("/v1/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
+	publicRouterGroup.POST("/v1/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
+	// TODO move from authenticationHandler to verifyEmailHandler
+	publicRouterGroup.POST("/v1/verify-email", authenticationHandler.VerifyEmail)
+	// TODO google recaptcha
+	// publicRouterGroup.POST("/v1/recaptcha", captchaHandler.ValidateCaptcha)
+	// publicRouterGroup.POST("/v1/forgot-password", resetPasswordHandler.ForgotPassword)
+	// publicRouterGroup.GET("/v1/token/:token", resetPasswordHandler.GetUserByToken)
+	// publicRouterGroup.POST("/v1/new-password", resetPasswordHandler.ResetPassword)
 
-	logoutRoutes := publicRouterGroup.Use(middleware.LogoutMiddleware(authenticationService, userService))
-	logoutRoutes.POST("/logout", authenticationHandler.Logout)
+	logoutRoutes := router.Group(prefix).Use(middleware.LogoutAuthMiddleware(authenticationService, userService))
+	logoutRoutes.POST("/v1/logout", authenticationHandler.Logout)
 
-	authRoutes := publicRouterGroup.Use(middleware.AuthMiddleware(authenticationService, userService))
-	authRoutes.GET("/profile", profileHandler.GetProfile)
+	refreshTokenRoutes := router.Group(prefix).Use(middleware.RefreshAuthMiddleware(authenticationService, userService))
+	refreshTokenRoutes.POST("/v1/refresh-token", authenticationHandler.RefreshToken)
 
-	adminRoutes := authRoutes.Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
-	adminRoutes.GET("/users", userHandler.GetAllUsers)
+	authRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService))
+	authRoutes.GET("/v1/profile", profileHandler.GetProfile)
+
+	adminRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService)).Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
+	adminRoutes.GET("/v1/users", userHandler.GetAllUsers)
 
 	return router
 }

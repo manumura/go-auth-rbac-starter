@@ -40,7 +40,7 @@ CREATE UNIQUE INDEX "REL_user_credentials_user_id" ON user_credentials (user_id)
 CREATE TABLE verify_email_token (
 	"user_id" INTEGER PRIMARY KEY,
 	"token" varchar(50) NOT NULL,
-	"expired_at" text NOT NULL,
+	"expires_at" text NOT NULL,
 	"created_at" text NOT NULL,
 	"updated_at" text,
 	CONSTRAINT "FK_verify_email_token_user_id_user_id" FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE ON UPDATE CASCADE

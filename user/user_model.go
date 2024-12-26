@@ -37,7 +37,7 @@ type OauthUserProvider struct {
 
 type VerifyEmailToken struct {
 	Token     string `json:"token"`
-	ExpiredAt string `json:"expiredAt"`
+	ExpiresAt string `json:"expiresAt"`
 }
 
 type AuthenticatedUser struct {

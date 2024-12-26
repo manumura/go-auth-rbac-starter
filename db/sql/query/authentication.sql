@@ -17,3 +17,7 @@ WHERE user_id = ?;
 -- name: GetAuthenticationTokenByAccessToken :one
 SELECT * FROM authentication_token
 WHERE access_token = ?;
+
+-- name: GetAuthenticationTokenByRefreshToken :one
+SELECT * FROM authentication_token
+WHERE refresh_token = ?;

@@ -65,7 +65,7 @@ type UserCredentials struct {
 type VerifyEmailToken struct {
 	UserID    int64          `json:"userId"`
 	Token     string         `json:"token"`
-	ExpiredAt string         `json:"expiredAt"`
+	ExpiresAt string         `json:"expiresAt"`
 	CreatedAt string         `json:"createdAt"`
 	UpdatedAt sql.NullString `json:"updatedAt"`
 }

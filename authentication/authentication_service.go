@@ -12,6 +12,7 @@ import (
 type AuthenticationService interface {
 	CreateAuthentication(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error)
 	GetByAccessToken(ctx context.Context, token string) (db.AuthenticationToken, error)
+	GetByRefreshToken(ctx context.Context, token string) (db.AuthenticationToken, error)
 	GetUserByVerifyEmailToken(ctx context.Context, token string) (user.UserEntity, error)
 	DeleteAuthenticationTokenByUserID(ctx context.Context, userID int64) error
 	UpdateUserIsEmailVerified(ctx context.Context, userID int64) error
@@ -67,11 +68,16 @@ func (service *AuthenticationServiceImpl) GetByAccessToken(ctx context.Context, 
 	return t, err
 }
 
+func (service *AuthenticationServiceImpl) GetByRefreshToken(ctx context.Context, token string) (db.AuthenticationToken, error) {
+	t, err := service.datastore.GetAuthenticationTokenByRefreshToken(ctx, token)
+	return t, err
+}
+
 func (service *AuthenticationServiceImpl) GetUserByVerifyEmailToken(ctx context.Context, token string) (user.UserEntity, error) {
 	dbUser, err := service.datastore.GetUserByVerifyEmailToken(ctx, token)
 	u := user.UserWithVerifyEmailTokenToUserEntity(dbUser.User, user.VerifyEmailToken{
 		Token:     dbUser.VerifyEmailToken.Token,
-		ExpiredAt: dbUser.VerifyEmailToken.ExpiredAt,
+		ExpiresAt: dbUser.VerifyEmailToken.ExpiresAt,
 	})
 	return u, err
 }

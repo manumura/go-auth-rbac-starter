@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 
@@ -25,9 +24,7 @@ func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 			return
 		}
 
-		fmt.Println(u)
 		ok = slices.Contains(roles, u.Role)
-
 		if !ok {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return

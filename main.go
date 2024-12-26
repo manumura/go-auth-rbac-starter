@@ -31,6 +31,7 @@ var interruptSignals = []os.Signal{
 	syscall.SIGINT,
 }
 
+// TODO middlewares https://github.com/gin-gonic/contrib?tab=readme-ov-file
 // TODO cookies
 // TODO swagger
 // TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/

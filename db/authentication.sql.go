@@ -80,3 +80,22 @@ func (q *Queries) GetAuthenticationTokenByAccessToken(ctx context.Context, acces
 	)
 	return i, err
 }
+
+const getAuthenticationTokenByRefreshToken = `-- name: GetAuthenticationTokenByRefreshToken :one
+SELECT user_id, access_token, access_token_expires_at, refresh_token, refresh_token_expires_at, created_at FROM authentication_token
+WHERE refresh_token = ?
+`
+
+func (q *Queries) GetAuthenticationTokenByRefreshToken(ctx context.Context, refreshToken string) (AuthenticationToken, error) {
+	row := q.db.QueryRowContext(ctx, getAuthenticationTokenByRefreshToken, refreshToken)
+	var i AuthenticationToken
+	err := row.Scan(
+		&i.UserID,
+		&i.AccessToken,
+		&i.AccessTokenExpiresAt,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}

@@ -19,6 +19,7 @@ type Querier interface {
 	// SELECT user.*, user_credentials.*
 	GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error)
 	GetAuthenticationTokenByAccessToken(ctx context.Context, accessToken string) (AuthenticationToken, error)
+	GetAuthenticationTokenByRefreshToken(ctx context.Context, refreshToken string) (AuthenticationToken, error)
 	GetOauthProviders(ctx context.Context) ([]OauthProvider, error)
 	GetRoles(ctx context.Context) ([]Role, error)
 	// SELECT user.*, user_credentials.*

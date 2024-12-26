@@ -89,11 +89,11 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 
 		log.Info().Msg("creating email verification token")
 		token := uuid.New().String()
-		expiredAt := now.Add(time.Hour * VERIFY_EMAIL_TOKEN_EXPIRY_DURATION_IN_HOURS).Format(time.DateTime)
+		expiresAt := now.Add(time.Hour * VERIFY_EMAIL_TOKEN_EXPIRY_DURATION_IN_HOURS).Format(time.DateTime)
 		vetp := db.CreateVerifyEmailTokenParams{
 			UserID:    u.ID,
 			Token:     token,
-			ExpiredAt: expiredAt,
+			ExpiresAt: expiresAt,
 			CreatedAt: nowAsString,
 			UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
 		}
@@ -105,7 +105,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 
 		user = UserCredentialsWithVerifyEmailTokenToUserEntity(u, uc, VerifyEmailToken{
 			Token:     token,
-			ExpiredAt: expiredAt,
+			ExpiresAt: expiresAt,
 		})
 		log.Info().Msgf("new user created: %s", user.Uuid)
 		return nil

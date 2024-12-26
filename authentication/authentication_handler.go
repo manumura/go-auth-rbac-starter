@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -60,15 +59,15 @@ func (h *AuthenticationHandler) VerifyEmail(ctx *gin.Context) {
 		return
 	}
 
-	tokenExpiredAt, err := time.Parse(time.DateTime, u.VerifyEmailToken.ExpiredAt)
+	tokenExpiresAt, err := time.Parse(time.DateTime, u.VerifyEmailToken.ExpiresAt)
 	if err != nil {
 		log.Error().Err(err).Msg("error parsing token expiry time")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrorAccessInvalidToken, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	now := time.Now().UTC()
-	if tokenExpiredAt.Before(now) {
+	if tokenExpiresAt.Before(now) {
 		log.Error().Msg("token already expired")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrTokenExpired, http.StatusBadRequest))
 		return
@@ -121,38 +120,37 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(u)
-
-	t, err := h.generateTokens(authenticatedUser)
+	authResponse, authenticatedUser, err := h.createTokens(u, ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to generate authentication tokens")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
-	}
-
-	// Save the tokens in the database
-	authReq := AuthenticationRequest{
-		UserID:                u.ID,
-		AccessToken:           t.AccessToken,
-		RefreshToken:          t.RefreshToken,
-		AccessTokenExpiresAt:  t.AccessTokenExpiresAt,
-		RefreshTokenExpiresAt: t.RefreshTokenExpiresAt,
-	}
-	_, err = h.CreateAuthentication(ctx, authReq)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to save authentication token")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
-	}
-
-	authResponse := AuthenticationResponse{
-		AccessToken:          t.AccessToken,
-		RefreshToken:         t.RefreshToken,
-		IdToken:              t.IdToken,
-		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
 	}
 
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
+	ctx.JSON(http.StatusOK, authResponse)
+}
+
+func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
+	authenticatedUser, err := user.GetUserFromContext(ctx)
+	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		return
+	}
+
+	u, err := h.GetByUUID(ctx, authenticatedUser.Uuid.String())
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(exception.ErrNotFound, http.StatusNotFound))
+		return
+	}
+
+	authResponse, authenticatedUser, err := h.createTokens(u, ctx)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	log.Info().Msgf("user %s token refreshed", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
@@ -224,7 +222,6 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	}
 
 	tokenPayload, err := verifyGoogleToken(req.Token, h.Config.GoogleClientId)
-	fmt.Printf("Token payload: %v\n", tokenPayload)
 	if err != nil {
 		log.Error().Err(err).Msg("invalid token")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
@@ -274,6 +271,10 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 		}
 	}
 
+	return h.createTokens(u, ctx)
+}
+
+func (h *AuthenticationHandler) createTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
 	authenticatedUser := user.ToAuthenticatedUser(u)
 
 	t, err := h.generateTokens(authenticatedUser)
@@ -304,9 +305,11 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 		IdToken:              t.IdToken,
 		AccessTokenExpiresAt: t.AccessTokenExpiresAt,
 	}
+
 	return authResponse, authenticatedUser, nil
 }
 
+// TODO encrypt SHA256 ?
 func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {
 	now := time.Now().UTC()
 	accessToken, err := nanoid.Standard(21)

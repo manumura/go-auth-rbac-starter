@@ -14,18 +14,18 @@ const createVerifyEmailToken = `-- name: CreateVerifyEmailToken :one
 INSERT INTO verify_email_token (
         user_id,
         token,
-        expired_at,
+        expires_at,
         created_at,
         updated_at
     )
 VALUES (?, ?, ?, ?, ?)
-RETURNING user_id, token, expired_at, created_at, updated_at
+RETURNING user_id, token, expires_at, created_at, updated_at
 `
 
 type CreateVerifyEmailTokenParams struct {
 	UserID    int64          `json:"userId"`
 	Token     string         `json:"token"`
-	ExpiredAt string         `json:"expiredAt"`
+	ExpiresAt string         `json:"expiresAt"`
 	CreatedAt string         `json:"createdAt"`
 	UpdatedAt sql.NullString `json:"updatedAt"`
 }
@@ -34,7 +34,7 @@ func (q *Queries) CreateVerifyEmailToken(ctx context.Context, arg CreateVerifyEm
 	row := q.db.QueryRowContext(ctx, createVerifyEmailToken,
 		arg.UserID,
 		arg.Token,
-		arg.ExpiredAt,
+		arg.ExpiresAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -42,7 +42,7 @@ func (q *Queries) CreateVerifyEmailToken(ctx context.Context, arg CreateVerifyEm
 	err := row.Scan(
 		&i.UserID,
 		&i.Token,
-		&i.ExpiredAt,
+		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -60,7 +60,7 @@ func (q *Queries) DeleteVerifyEmailToken(ctx context.Context, userID int64) erro
 }
 
 const getVerifyEmailTokenByToken = `-- name: GetVerifyEmailTokenByToken :one
-SELECT user_id, token, expired_at, created_at, updated_at FROM verify_email_token
+SELECT user_id, token, expires_at, created_at, updated_at FROM verify_email_token
 WHERE token = ?
 `
 
@@ -70,7 +70,7 @@ func (q *Queries) GetVerifyEmailTokenByToken(ctx context.Context, token string) 
 	err := row.Scan(
 		&i.UserID,
 		&i.Token,
-		&i.ExpiredAt,
+		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
