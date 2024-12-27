@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
+	"github.com/manumura/go-auth-rbac-starter/captcha"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
@@ -24,6 +25,8 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	userHandler := user.NewUserHandler(userService, emailService, config, validate)
 	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
+	verifyEmailHandler := authentication.NewVerifyEmailHandler(authenticationService, config, validate)
+	captchaHandler := captcha.NewCaptchaHandler(config, validate)
 	profileHandler := profile.NewProfileHandler(userService)
 
 	router := gin.Default()
@@ -36,10 +39,9 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup.POST("/v1/login", authenticationHandler.Login)
 	publicRouterGroup.POST("/v1/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
 	publicRouterGroup.POST("/v1/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
-	// TODO move from authenticationHandler to verifyEmailHandler
-	publicRouterGroup.POST("/v1/verify-email", authenticationHandler.VerifyEmail)
+	publicRouterGroup.POST("/v1/verify-email", verifyEmailHandler.VerifyEmail)
 	// TODO google recaptcha
-	// publicRouterGroup.POST("/v1/recaptcha", captchaHandler.ValidateCaptcha)
+	publicRouterGroup.POST("/v1/recaptcha", captchaHandler.ValidateCaptcha)
 	// publicRouterGroup.POST("/v1/forgot-password", resetPasswordHandler.ForgotPassword)
 	// publicRouterGroup.GET("/v1/token/:token", resetPasswordHandler.GetUserByToken)
 	// publicRouterGroup.POST("/v1/new-password", resetPasswordHandler.ResetPassword)

@@ -12,6 +12,7 @@ type Config struct {
 	IdTokenExpiresInAsSeconds      int    `mapstructure:"ID_TOKEN_EXPIRES_IN_AS_SECONDS"`
 	JwtSecret                      string `mapstructure:"JWT_SECRET"`
 	GoogleClientId                 string `mapstructure:"GOOGLE_CLIENT_ID"`
+	RecaptchaSecretKey             string `mapstructure:"RECAPTCHA_SECRET_KEY"`
 	SmtpHost                       string `mapstructure:"SMTP_HOST"`
 	SmtpPort                       int    `mapstructure:"SMTP_PORT"`
 	SmtpUser                       string `mapstructure:"SMTP_USER"`
