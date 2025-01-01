@@ -26,8 +26,6 @@ type UserService interface {
 	GetByUUID(ctx context.Context, uuid string) (UserEntity, error)
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
-	GetByVerifyEmailToken(ctx context.Context, token string) (UserEntity, error)
-	UpdateIsEmailVerified(ctx context.Context, userID int64) error
 }
 
 type UserServiceImpl struct {
@@ -224,40 +222,4 @@ func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider
 
 func (service *UserServiceImpl) CheckPassword(password string, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-func (service *UserServiceImpl) GetByVerifyEmailToken(ctx context.Context, token string) (UserEntity, error) {
-	dbUser, err := service.datastore.GetUserByVerifyEmailToken(ctx, token)
-	u := UserWithVerifyEmailTokenToUserEntity(dbUser.User, VerifyEmailToken{
-		Token:     dbUser.VerifyEmailToken.Token,
-		ExpiresAt: dbUser.VerifyEmailToken.ExpiresAt,
-	})
-	return u, err
-}
-
-func (service *UserServiceImpl) UpdateIsEmailVerified(ctx context.Context, userID int64) error {
-	err := service.datastore.ExecTx(ctx, func(q *db.Queries) error {
-		var err error
-
-		log.Info().Msg("updating user email verified")
-		err = service.datastore.UpdateUserIsEmailVerified(ctx, db.UpdateUserIsEmailVerifiedParams{
-			UserID:          userID,
-			IsEmailVerified: 1,
-		})
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			return err
-		}
-
-		log.Info().Msg("deleting verify email token")
-		err = service.datastore.DeleteVerifyEmailToken(ctx, userID)
-		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
-			return err
-		}
-
-		return nil
-	})
-
-	return err
 }

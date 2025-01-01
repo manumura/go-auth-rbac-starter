@@ -21,12 +21,13 @@ const (
 func (server *HttpServer) SetupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	userService := user.NewUserService(server.datastore)
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
+	verifyEmailService := authentication.NewVerifyEmailService(server.datastore, userService)
 	resetPasswordService := authentication.NewResetPasswordService(server.datastore, userService)
 	emailService := message.NewEmailService(config)
 
 	userHandler := user.NewUserHandler(userService, emailService, config, validate)
 	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
-	verifyEmailHandler := authentication.NewVerifyEmailHandler(userService, config, validate)
+	verifyEmailHandler := authentication.NewVerifyEmailHandler(verifyEmailService, config, validate)
 	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)
 	profileHandler := profile.NewProfileHandler(userService)
