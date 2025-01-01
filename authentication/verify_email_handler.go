@@ -13,12 +13,12 @@ import (
 )
 
 type VerifyEmailHandler struct {
-	AuthenticationService
+	user.UserService
 	config.Config
 	*validator.Validate
 }
 
-func NewVerifyEmailHandler(service AuthenticationService, config config.Config, validate *validator.Validate) VerifyEmailHandler {
+func NewVerifyEmailHandler(service user.UserService, config config.Config, validate *validator.Validate) VerifyEmailHandler {
 	return VerifyEmailHandler{
 		service,
 		config,
@@ -42,7 +42,7 @@ func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 	}
 
 	log.Info().Msgf("find user by verify email token: %s", req.Token)
-	u, err := h.GetUserByVerifyEmailToken(ctx, req.Token)
+	u, err := h.GetByVerifyEmailToken(ctx, req.Token)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
 		return
@@ -63,7 +63,7 @@ func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 	}
 
 	log.Info().Msgf("update user is email verified by user ID: %d", u.ID)
-	err = h.UpdateUserIsEmailVerified(ctx, u.ID)
+	err = h.UpdateIsEmailVerified(ctx, u.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to verify email")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))

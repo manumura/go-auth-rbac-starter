@@ -287,6 +287,40 @@ func (q *Queries) GetUserByOauthProvider(ctx context.Context, arg GetUserByOauth
 	return i, err
 }
 
+const getUserByResetPasswordToken = `-- name: GetUserByResetPasswordToken :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, reset_password_token.user_id, reset_password_token.token, reset_password_token.expires_at, reset_password_token.created_at, reset_password_token.updated_at
+FROM user
+INNER JOIN reset_password_token ON user.id = reset_password_token.user_id
+WHERE reset_password_token.token = ?
+`
+
+type GetUserByResetPasswordTokenRow struct {
+	User               User               `json:"user"`
+	ResetPasswordToken ResetPasswordToken `json:"resetPasswordToken"`
+}
+
+func (q *Queries) GetUserByResetPasswordToken(ctx context.Context, token string) (GetUserByResetPasswordTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByResetPasswordToken, token)
+	var i GetUserByResetPasswordTokenRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.ResetPasswordToken.UserID,
+		&i.ResetPasswordToken.Token,
+		&i.ResetPasswordToken.ExpiresAt,
+		&i.ResetPasswordToken.CreatedAt,
+		&i.ResetPasswordToken.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByUUID = `-- name: GetUserByUUID :one
 SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id
 FROM user
@@ -357,5 +391,21 @@ type UpdateUserIsEmailVerifiedParams struct {
 
 func (q *Queries) UpdateUserIsEmailVerified(ctx context.Context, arg UpdateUserIsEmailVerifiedParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserIsEmailVerified, arg.IsEmailVerified, arg.UserID)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE user_credentials
+SET password = ?
+WHERE user_id = ?
+`
+
+type UpdateUserPasswordParams struct {
+	Password string      `json:"password"`
+	UserID   interface{} `json:"userId"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Password, arg.UserID)
 	return err
 }

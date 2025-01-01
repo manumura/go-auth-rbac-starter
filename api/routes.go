@@ -21,11 +21,13 @@ const (
 func (server *HttpServer) SetupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	userService := user.NewUserService(server.datastore)
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
+	resetPasswordService := authentication.NewResetPasswordService(server.datastore, userService)
 	emailService := message.NewEmailService(config)
 
 	userHandler := user.NewUserHandler(userService, emailService, config, validate)
 	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
-	verifyEmailHandler := authentication.NewVerifyEmailHandler(authenticationService, config, validate)
+	verifyEmailHandler := authentication.NewVerifyEmailHandler(userService, config, validate)
+	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)
 	profileHandler := profile.NewProfileHandler(userService)
 
@@ -40,11 +42,10 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup.POST("/v1/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
 	publicRouterGroup.POST("/v1/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
 	publicRouterGroup.POST("/v1/verify-email", verifyEmailHandler.VerifyEmail)
-	// TODO google recaptcha
 	publicRouterGroup.POST("/v1/recaptcha", captchaHandler.ValidateCaptcha)
-	// publicRouterGroup.POST("/v1/forgot-password", resetPasswordHandler.ForgotPassword)
-	// publicRouterGroup.GET("/v1/token/:token", resetPasswordHandler.GetUserByToken)
-	// publicRouterGroup.POST("/v1/new-password", resetPasswordHandler.ResetPassword)
+	publicRouterGroup.POST("/v1/forgot-password", resetPasswordHandler.ForgotPassword)
+	publicRouterGroup.GET("/v1/token/:token", resetPasswordHandler.GetUserByToken)
+	publicRouterGroup.POST("/v1/new-password", resetPasswordHandler.ResetPassword)
 
 	logoutRoutes := router.Group(prefix).Use(middleware.LogoutAuthMiddleware(authenticationService, userService))
 	logoutRoutes.POST("/v1/logout", authenticationHandler.Logout)

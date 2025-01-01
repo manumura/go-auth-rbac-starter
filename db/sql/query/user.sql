@@ -73,3 +73,14 @@ WHERE verify_email_token.token = ?;
 UPDATE user_credentials
 SET is_email_verified = ?
 WHERE user_id = ?;
+
+-- name: GetUserByResetPasswordToken :one
+SELECT sqlc.embed(user), sqlc.embed(reset_password_token)
+FROM user
+INNER JOIN reset_password_token ON user.id = reset_password_token.user_id
+WHERE reset_password_token.token = ?;
+
+-- name: UpdateUserPassword :exec
+UPDATE user_credentials
+SET password = ?
+WHERE user_id = ?;

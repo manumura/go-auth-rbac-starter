@@ -9,18 +9,19 @@ import (
 )
 
 type UserEntity struct {
-	ID                int64             `json:"id"`
-	Uuid              uuid.UUID         `json:"uuid"`
-	Name              string            `json:"name"`
-	IsActive          bool              `json:"isActive"`
-	ImageID           string            `json:"imageId"`
-	ImageUrl          string            `json:"imageUrl"`
-	Role              role.Role         `json:"role"`
-	CreatedAt         *time.Time        `json:"createdAt"`
-	UpdatedAt         *time.Time        `json:"updatedAt"`
-	UserCredentials   UserCredentials   `json:"userCredentials"`
-	OauthUserProvider OauthUserProvider `json:"oauthProvider"`
-	VerifyEmailToken  VerifyEmailToken  `json:"verifyEmailToken"`
+	ID                 int64              `json:"id"`
+	Uuid               uuid.UUID          `json:"uuid"`
+	Name               string             `json:"name"`
+	IsActive           bool               `json:"isActive"`
+	ImageID            string             `json:"imageId"`
+	ImageUrl           string             `json:"imageUrl"`
+	Role               role.Role          `json:"role"`
+	CreatedAt          *time.Time         `json:"createdAt"`
+	UpdatedAt          *time.Time         `json:"updatedAt"`
+	UserCredentials    UserCredentials    `json:"userCredentials"`
+	OauthUserProvider  OauthUserProvider  `json:"oauthProvider"`
+	VerifyEmailToken   VerifyEmailToken   `json:"verifyEmailToken"`
+	ResetPasswordToken ResetPasswordToken `json:"resetPasswordToken"`
 }
 
 type UserCredentials struct {
@@ -36,6 +37,11 @@ type OauthUserProvider struct {
 }
 
 type VerifyEmailToken struct {
+	Token     string `json:"token"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
+type ResetPasswordToken struct {
 	Token     string `json:"token"`
 	ExpiresAt string `json:"expiresAt"`
 }
