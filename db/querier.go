@@ -30,9 +30,11 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByOauthProvider(ctx context.Context, arg GetUserByOauthProviderParams) (GetUserByOauthProviderRow, error)
 	GetUserByResetPasswordToken(ctx context.Context, token string) (GetUserByResetPasswordTokenRow, error)
-	GetUserByUUID(ctx context.Context, uuid string) (User, error)
+	// SELECT user.*, user_credentials.*
+	GetUserByUUID(ctx context.Context, uuid string) (GetUserByUUIDRow, error)
 	GetUserByVerifyEmailToken(ctx context.Context, token string) (GetUserByVerifyEmailTokenRow, error)
 	GetVerifyEmailTokenByToken(ctx context.Context, token string) (VerifyEmailToken, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserIsEmailVerified(ctx context.Context, arg UpdateUserIsEmailVerifiedParams) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }

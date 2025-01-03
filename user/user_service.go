@@ -202,7 +202,7 @@ func (service *UserServiceImpl) GetByUUID(ctx context.Context, uuid string) (Use
 		return UserEntity{}, err
 	}
 
-	return UserToUserEntity(u), nil
+	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
 }
 
 func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error) {

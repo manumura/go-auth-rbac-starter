@@ -53,8 +53,10 @@ INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE id = ?;
 
 -- name: GetUserByUUID :one
-SELECT user.*
-FROM user
+SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+-- SELECT user.*, user_credentials.*
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE uuid = ?;
 
 -- name: GetUserByOauthProvider :one
@@ -84,3 +86,13 @@ WHERE reset_password_token.token = ?;
 UPDATE user_credentials
 SET password = ?
 WHERE user_id = ?;
+
+-- name: UpdateUser :one
+UPDATE user
+SET 
+    name = COALESCE(sqlc.narg(name), name), 
+    is_active = COALESCE(sqlc.narg(is_active), is_active),
+    updated_at = sqlc.narg(updated_at)
+WHERE 
+    uuid = sqlc.arg(uuid)
+RETURNING *;

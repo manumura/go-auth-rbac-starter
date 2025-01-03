@@ -152,11 +152,11 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 
 	authResponse, authenticatedUser, err := h.authenticate(req.ID, oauthprovider.FACEBOOK, req.Name, req.Email, ctx)
 	if err != nil {
+		statusCode := http.StatusInternalServerError
 		if err == exception.ErrLogin {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
-			return
+			statusCode = http.StatusUnauthorized
 		}
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(statusCode, exception.ErrorResponse(err, statusCode))
 		return
 	}
 
@@ -192,11 +192,11 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 
 	authResponse, authenticatedUser, err := h.authenticate(id, oauthprovider.GOOGLE, name, email, ctx)
 	if err != nil {
+		statusCode := http.StatusInternalServerError
 		if err == exception.ErrLogin {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(err, http.StatusUnauthorized))
-			return
+			statusCode = http.StatusUnauthorized
 		}
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(statusCode, exception.ErrorResponse(err, statusCode))
 		return
 	}
 

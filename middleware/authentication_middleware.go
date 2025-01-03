@@ -50,6 +50,12 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 			return
 		}
 
+		if !u.IsActive {
+			log.Error().Msg("user is not active")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			return
+		}
+
 		authenticatedUser := user.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
 		ctx.Set(user.AuthenticatedUserKey, authenticatedUser)
@@ -87,6 +93,12 @@ func RefreshAuthMiddleware(authenticationService authentication.AuthenticationSe
 			return
 		}
 
+		if !u.IsActive {
+			log.Error().Msg("user is not active")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			return
+		}
+
 		authenticatedUser := user.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
 		ctx.Set(user.AuthenticatedUserKey, authenticatedUser)
@@ -102,7 +114,7 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 			return
 		}
 
-		// No need to check validity of token here, as we are logging out
+		// No need to check validity of token or user active here, as we are logging out
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")

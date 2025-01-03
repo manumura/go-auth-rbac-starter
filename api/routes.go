@@ -23,6 +23,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
 	verifyEmailService := authentication.NewVerifyEmailService(server.datastore, userService)
 	resetPasswordService := authentication.NewResetPasswordService(server.datastore, userService)
+	profileService := profile.NewProfileService(server.datastore, userService)
 	emailService := message.NewEmailService(config)
 
 	userHandler := user.NewUserHandler(userService, emailService, config, validate)
@@ -30,7 +31,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	verifyEmailHandler := authentication.NewVerifyEmailHandler(verifyEmailService, config, validate)
 	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)
-	profileHandler := profile.NewProfileHandler(userService)
+	profileHandler := profile.NewProfileHandler(profileService)
 
 	router := gin.Default()
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
@@ -56,6 +57,9 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	authRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService))
 	authRoutes.GET("/v1/profile", profileHandler.GetProfile)
+	authRoutes.PUT("/v1/profile", profileHandler.UpdateProfile)
+	authRoutes.PUT("/v1/profile/password", profileHandler.UpdatePassword)
+	authRoutes.DELETE("/v1/profile", profileHandler.DeleteProfile)
 
 	adminRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService)).Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
 	adminRoutes.GET("/v1/users", userHandler.GetAllUsers)
