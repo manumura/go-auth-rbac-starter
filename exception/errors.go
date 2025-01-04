@@ -12,6 +12,7 @@ var (
 	ErrAlreadyExists         = errors.New("resource already exists")
 	ErrLogin                 = errors.New("invalid email or password")
 	ErrInvalidRequest        = errors.New("request is invalid")
+	ErrInvalidFileExtension  = errors.New("file extension is invalid")
 	ErrCannotCreateUser      = errors.New("cannot create user")
 	ErrInternalServer        = errors.New("internal server error")
 	ErrorInvalidAccessToken  = errors.New("invalid access token")

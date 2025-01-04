@@ -59,6 +59,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	authRoutes.GET("/v1/profile", profileHandler.GetProfile)
 	authRoutes.PUT("/v1/profile", profileHandler.UpdateProfile)
 	authRoutes.PUT("/v1/profile/password", profileHandler.UpdatePassword)
+	authRoutes.PUT("/v1/profile/image", profileHandler.UpdateImage)
 	authRoutes.DELETE("/v1/profile", profileHandler.DeleteProfile)
 
 	adminRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService)).Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
