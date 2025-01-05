@@ -16,6 +16,8 @@ import (
 
 const (
 	maxConnectAttempts = 10
+	migrationPath      = "sql/migration"
+	sqlDialect         = "sqlite3"
 )
 
 type DataStore interface {
@@ -137,11 +139,11 @@ var embedMigrations embed.FS
 func (d *Database) MigrateUp() error {
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect(sqlDialect); err != nil {
 		return err
 	}
 
-	if err := goose.Up(d.db, "sql/migration"); err != nil {
+	if err := goose.Up(d.db, migrationPath); err != nil {
 		return err
 	}
 
@@ -152,11 +154,11 @@ func (d *Database) MigrateUp() error {
 func (d *Database) MigrateDown() error {
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect(sqlDialect); err != nil {
 		return err
 	}
 
-	if err := goose.Down(d.db, "sql/migration"); err != nil {
+	if err := goose.Down(d.db, migrationPath); err != nil {
 		return err
 	}
 

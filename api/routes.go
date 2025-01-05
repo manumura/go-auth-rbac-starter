@@ -31,7 +31,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	verifyEmailHandler := authentication.NewVerifyEmailHandler(verifyEmailService, config, validate)
 	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)
-	profileHandler := profile.NewProfileHandler(profileService)
+	profileHandler := profile.NewProfileHandler(profileService, config, validate)
 
 	router := gin.Default()
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
@@ -21,11 +23,15 @@ const (
 )
 
 type ProfileHandler struct {
+	config.Config
+	*validator.Validate
 	ProfileService
 }
 
-func NewProfileHandler(profileService ProfileService) ProfileHandler {
+func NewProfileHandler(profileService ProfileService, config config.Config, validate *validator.Validate) ProfileHandler {
 	return ProfileHandler{
+		config,
+		validate,
 		profileService,
 	}
 }
@@ -55,6 +61,14 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
+	// returns nil or ValidationErrors ( []FieldError )
+	err = h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
 	userEntity, err := h.UpdateProfileByUserUuid(ctx, u.Uuid, req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
@@ -76,6 +90,14 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 	var req UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	// returns nil or ValidationErrors ( []FieldError )
+	err = h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 

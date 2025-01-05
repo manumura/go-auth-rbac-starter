@@ -14,11 +14,11 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/constant"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/gapi"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/pb"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -36,19 +36,28 @@ var interruptSignals = []os.Signal{
 // TODO swagger
 // TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
-	config, err := config.LoadConfig(".env")
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot load config")
+	env := os.Getenv(constant.ENVIRONMENT)
+	if env == "" {
+		env = "dev"
 	}
 
-	if config.Environment == "dev" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	}
-
-	log.Info().Msg("starting main")
+	config.ConfigureLogger(env)
+	log.Info().Msgf("starting main on environment: %s", env)
 
 	// use a single instance of Validate, it caches struct info
 	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	config, err := config.LoadConfig(".env")
+	if err != nil {
+		// e := fmt.Errorf("cannot load config: %w", err)
+		// panic(e)
+		log.Fatal().Err(err).Msg("cannot load config")
+	}
+
+	err = validate.Struct(config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("config validation failed")
+	}
 
 	datastore := db.NewDataStore(config)
 	err = datastore.Connect()
