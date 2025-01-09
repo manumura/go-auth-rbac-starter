@@ -28,6 +28,10 @@ type Config struct {
 	ConnectionMaxIdleTime          int    `mapstructure:"DATABASE_CONNECTION_MAX_IDLE_TIME_IN_SECONDS" validate:"required"`
 	TursoDatabaseUrl               string `mapstructure:"TURSO_DATABASE_URL" validate:"required"`
 	TursoAuthToken                 string `mapstructure:"TURSO_AUTH_TOKEN" validate:"required"`
+	AwsRegion                      string `mapstructure:"AWS_REGION" validate:"required"`
+	AwsAccessKeyId                 string `mapstructure:"AWS_ACCESS_KEY_ID" validate:"required"`
+	AwsSecretAccessKey             string `mapstructure:"AWS_SECRET_ACCESS_KEY" validate:"required"`
+	AwsS3Bucket                    string `mapstructure:"AWS_S3_BUCKET" validate:"required"`
 }
 
 // LoadConfig reads configuration from file or environment variables.

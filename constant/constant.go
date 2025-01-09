@@ -1,5 +1,5 @@
 package constant
 
 const (
-	ENVIRONMENT = "ENVIRONMENT"
+	ENVIRONMENT = "ENV"
 )

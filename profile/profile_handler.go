@@ -9,9 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/manumura/go-auth-rbac-starter/config"
+	conf "github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
@@ -20,15 +25,16 @@ import (
 const (
 	TmpDir          = "tmp"
 	ValidExtensions = ".jpg,.jpeg,.png,.gif"
+	S3Dir           = "profile"
 )
 
 type ProfileHandler struct {
-	config.Config
+	conf.Config
 	*validator.Validate
 	ProfileService
 }
 
-func NewProfileHandler(profileService ProfileService, config config.Config, validate *validator.Validate) ProfileHandler {
+func NewProfileHandler(profileService ProfileService, config conf.Config, validate *validator.Validate) ProfileHandler {
 	return ProfileHandler{
 		config,
 		validate,
@@ -139,9 +145,45 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 
 	now := time.Now()
 	nowAsString := now.Format("20060102150405")
+	filename := u.Uuid.String() + "_" + nowAsString + ext
 
-	tmpFile := TmpDir + "/" + u.Uuid.String() + "_" + nowAsString + ext
+	tmpFile := TmpDir + "/" + filename
 	ctx.SaveUploadedFile(file, tmpFile)
+
+	// Upload to S3
+	f, err := file.Open()
+	if err != nil {
+		log.Error().Err(err).Msg("error opening file")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	// https://github.com/aws/aws-sdk-go-v2/issues/1382#issuecomment-1058516508
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(h.Config.AwsRegion),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("error loading config")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	client := s3.NewFromConfig(cfg)
+	uploader := manager.NewUploader(client)
+	input := &s3.PutObjectInput{
+		Bucket:            aws.String(h.Config.AwsS3Bucket),
+		Key:               aws.String(S3Dir + "/" + filename),
+		Body:              f,
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+	}
+	output, err := uploader.Upload(ctx, input)
+	if err != nil {
+		log.Error().Err(err).Msg("error uploading file")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	fmt.Println(output)
 
 	// TODO
 	// if err := os.Remove(tmpFile); err != nil {

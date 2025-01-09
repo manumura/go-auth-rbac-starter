@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/go-playground/validator/v10"
@@ -36,9 +37,16 @@ var interruptSignals = []os.Signal{
 // TODO swagger
 // TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal().Err(err).Msg("error loading .env file")
+	}
+
 	env := os.Getenv(constant.ENVIRONMENT)
 	if env == "" {
 		env = "dev"
+		// e := fmt.Errorf("environment variable %s is not set", constant.ENVIRONMENT)
+		// panic(e)
 	}
 
 	config.ConfigureLogger(env)
@@ -49,8 +57,6 @@ func main() {
 
 	config, err := config.LoadConfig(".env")
 	if err != nil {
-		// e := fmt.Errorf("cannot load config: %w", err)
-		// panic(e)
 		log.Fatal().Err(err).Msg("cannot load config")
 	}
 
