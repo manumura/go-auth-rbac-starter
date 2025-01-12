@@ -91,6 +91,8 @@ WHERE user_id = ?;
 UPDATE user
 SET 
     name = COALESCE(sqlc.narg(name), name), 
+    image_id = COALESCE(sqlc.narg(image_id), image_id),
+    image_url = COALESCE(sqlc.narg(image_url), image_url),
     is_active = COALESCE(sqlc.narg(is_active), is_active),
     updated_at = sqlc.narg(updated_at)
 WHERE 

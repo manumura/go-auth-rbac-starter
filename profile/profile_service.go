@@ -15,6 +15,7 @@ import (
 type ProfileService interface {
 	UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileRequest) (user.UserEntity, error)
 	UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordRequest) (user.UserEntity, error)
+	UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageRequest) (user.UserEntity, error)
 	DeleteProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.UserEntity, error)
 }
 
@@ -73,6 +74,25 @@ func (service *ProfileServiceImpl) UpdatePasswordByUserUuid(ctx context.Context,
 		return user.UserEntity{}, err
 	}
 
+	return u, err
+}
+
+func (service *ProfileServiceImpl) UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageRequest) (user.UserEntity, error) {
+	now := time.Now().UTC()
+	nowAsString := now.Format(time.DateTime)
+
+	p := db.UpdateUserParams{
+		Uuid:      userUUID.String(),
+		ImageID:   sql.NullString{String: req.ImageID, Valid: true},
+		ImageUrl:  sql.NullString{String: req.ImageURL, Valid: true},
+		UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
+	}
+	dbUser, err := service.datastore.UpdateUser(ctx, p)
+	if err != nil {
+		return user.UserEntity{}, err
+	}
+
+	u := user.UserToUserEntity(dbUser)
 	return u, err
 }
 

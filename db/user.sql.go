@@ -393,15 +393,19 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE user
 SET 
     name = COALESCE(?1, name), 
-    is_active = COALESCE(?2, is_active),
-    updated_at = ?3
+    image_id = COALESCE(?2, image_id),
+    image_url = COALESCE(?3, image_url),
+    is_active = COALESCE(?4, is_active),
+    updated_at = ?5
 WHERE 
-    uuid = ?4
+    uuid = ?6
 RETURNING id, uuid, name, is_active, image_id, image_url, created_at, updated_at, role_id
 `
 
 type UpdateUserParams struct {
 	Name      sql.NullString `json:"name"`
+	ImageID   sql.NullString `json:"imageId"`
+	ImageUrl  sql.NullString `json:"imageUrl"`
 	IsActive  sql.NullInt64  `json:"isActive"`
 	UpdatedAt sql.NullString `json:"updatedAt"`
 	Uuid      string         `json:"uuid"`
@@ -410,6 +414,8 @@ type UpdateUserParams struct {
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, updateUser,
 		arg.Name,
+		arg.ImageID,
+		arg.ImageUrl,
 		arg.IsActive,
 		arg.UpdatedAt,
 		arg.Uuid,

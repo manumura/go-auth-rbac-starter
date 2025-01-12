@@ -170,6 +170,19 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	}
 
 	client := s3.NewFromConfig(cfg)
+	if u.ImageID != "" {
+		// Delete old image
+		_, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(h.Config.AwsS3Bucket),
+			Key:    aws.String(u.ImageID),
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("error deleting old image")
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+			return
+		}
+	}
+
 	uploader := manager.NewUploader(client)
 	input := &s3.PutObjectInput{
 		Bucket:            aws.String(h.Config.AwsS3Bucket),
@@ -184,11 +197,18 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(output)
-
 	if err := os.Remove(tmpFile); err != nil {
 		log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
 	}
+
+	userEntity, err := h.UpdateImageByUserUuid(ctx, u.Uuid, UpdateImageRequest{ImageID: *output.Key, ImageURL: output.Location})
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	authenticatedUser := user.ToAuthenticatedUser(userEntity)
+	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
 func getFileExtension(file *multipart.FileHeader) (string, error) {
