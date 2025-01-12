@@ -28,7 +28,6 @@ type envCongig struct {
 
 type appConfig struct {
 	HTTPServerAddress              string `mapstructure:"HTTP_SERVER_ADDRESS" validate:"required"`
-	GRPCServerAddress              string `mapstructure:"GRPC_SERVER_ADDRESS" validate:"required"`
 	ClientAppUrl                   string `mapstructure:"CLIENT_APP_URL" validate:"required"`
 	AccessTokenExpiresInAsSeconds  int    `mapstructure:"ACCESS_TOKEN_EXPIRES_IN_AS_SECONDS" validate:"required"`
 	RefreshTokenExpiresInAsSeconds int    `mapstructure:"REFRESH_TOKEN_EXPIRES_IN_AS_SECONDS" validate:"required"`

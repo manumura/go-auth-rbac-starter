@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,13 +14,8 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/db"
-	"github.com/manumura/go-auth-rbac-starter/gapi"
-	"github.com/manumura/go-auth-rbac-starter/middleware"
-	"github.com/manumura/go-auth-rbac-starter/pb"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 var interruptSignals = []os.Signal{
@@ -65,7 +59,6 @@ func main() {
 	defer stop()
 	waitGroup, ctx := errgroup.WithContext(ctx)
 
-	runGrpcServer(ctx, waitGroup, config)
 	runHttpServer(ctx, waitGroup, config, datastore, validate)
 
 	err = waitGroup.Wait()
@@ -103,53 +96,6 @@ func runHttpServer(ctx context.Context,
 
 		server.Shutdown(context.Background())
 		log.Info().Msg("HTTP server is stopped")
-
-		return nil
-	})
-}
-
-func runGrpcServer(
-	ctx context.Context,
-	waitGroup *errgroup.Group,
-	conf config.Config,
-) {
-	server, err := gapi.NewGrpcServer(conf)
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot create server")
-	}
-
-	gprcUnaryLogger := grpc.UnaryInterceptor(middleware.GrpcUnaryLogger)
-	// gprcStreamLogger := grpc.StreamInterceptor(middleware.GrpcStreamLogger)
-	grpcServer := grpc.NewServer(gprcUnaryLogger)
-	pb.RegisterUserEventServer(grpcServer, server)
-	reflection.Register(grpcServer)
-
-	listener, err := net.Listen("tcp", conf.GRPCServerAddress)
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot create listener")
-	}
-
-	waitGroup.Go(func() error {
-		log.Info().Msgf("start gRPC server at %s", listener.Addr().String())
-
-		err = grpcServer.Serve(listener)
-		if err != nil {
-			if errors.Is(err, grpc.ErrServerStopped) {
-				return nil
-			}
-			log.Error().Err(err).Msg("gRPC server failed to serve")
-			return err
-		}
-
-		return nil
-	})
-
-	waitGroup.Go(func() error {
-		<-ctx.Done()
-		log.Info().Msg("graceful shutdown gRPC server")
-
-		grpcServer.GracefulStop()
-		log.Info().Msg("gRPC server is stopped")
 
 		return nil
 	})

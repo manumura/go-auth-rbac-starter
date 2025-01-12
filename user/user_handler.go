@@ -11,13 +11,9 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
-	"github.com/manumura/go-auth-rbac-starter/pb"
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/rs/zerolog/log"
 )
-
-// user events channel
-var UserEventsChannel = make(chan *pb.Event)
 
 type UserHandler struct {
 	// https://stackoverflow.com/questions/28014591/nameless-fields-in-go-structs
@@ -74,13 +70,6 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	}
 
 	authenticatedUser := ToAuthenticatedUser(user)
-
-	// TODO send event to user event channel
-	// UserEventsChannel <- &pb.Event{
-	// 	Id:   fmt.Sprintf("Event %d", 1),
-	// 	Type: fmt.Sprintf("Event %d type", 1),
-	// 	Data: fmt.Sprintf("Event %d data", 1),
-	// }
 
 	// Send email with link to verify email
 	go h.EmailService.SendRegistrationEmail(user.UserCredentials.Email, "", user.VerifyEmailToken.Token)
