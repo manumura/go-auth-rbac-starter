@@ -11,6 +11,8 @@ import (
 type AuthenticationService interface {
 	CreateAuthentication(ctx context.Context, req AuthenticationRequest) (db.AuthenticationToken, error)
 	GetByAccessToken(ctx context.Context, token string) (db.AuthenticationToken, error)
+	GetByRefreshToken(ctx context.Context, token string) (db.AuthenticationToken, error)
+	DeleteAuthenticationTokenByUserID(ctx context.Context, userID int64) error
 }
 
 type AuthenticationServiceImpl struct {
@@ -61,4 +63,14 @@ func (service *AuthenticationServiceImpl) CreateAuthentication(ctx context.Conte
 func (service *AuthenticationServiceImpl) GetByAccessToken(ctx context.Context, token string) (db.AuthenticationToken, error) {
 	t, err := service.datastore.GetAuthenticationTokenByAccessToken(ctx, token)
 	return t, err
+}
+
+func (service *AuthenticationServiceImpl) GetByRefreshToken(ctx context.Context, token string) (db.AuthenticationToken, error) {
+	t, err := service.datastore.GetAuthenticationTokenByRefreshToken(ctx, token)
+	return t, err
+}
+
+func (service *AuthenticationServiceImpl) DeleteAuthenticationTokenByUserID(ctx context.Context, userID int64) error {
+	err := service.datastore.DeleteAuthenticationToken(ctx, userID)
+	return err
 }

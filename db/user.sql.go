@@ -10,11 +10,44 @@ import (
 	"database/sql"
 )
 
+const createOauthUser = `-- name: CreateOauthUser :one
+INSERT INTO oauth_user (
+        oauth_provider_id,
+        user_id,
+        external_user_id,
+        email
+    )
+VALUES (?, ?, ?, ?)
+RETURNING oauth_provider_id, user_id, external_user_id, email
+`
+
+type CreateOauthUserParams struct {
+	OauthProviderID int64       `json:"oauthProviderId"`
+	UserID          int64       `json:"userId"`
+	ExternalUserID  string      `json:"externalUserId"`
+	Email           interface{} `json:"email"`
+}
+
+func (q *Queries) CreateOauthUser(ctx context.Context, arg CreateOauthUserParams) (OauthUser, error) {
+	row := q.db.QueryRowContext(ctx, createOauthUser,
+		arg.OauthProviderID,
+		arg.UserID,
+		arg.ExternalUserID,
+		arg.Email,
+	)
+	var i OauthUser
+	err := row.Scan(
+		&i.OauthProviderID,
+		&i.UserID,
+		&i.ExternalUserID,
+		&i.Email,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO user (
         uuid,
-        password,
-        email,
         name,
         is_active,
         image_id,
@@ -23,14 +56,12 @@ INSERT INTO user (
         updated_at,
         role_id
     )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, uuid, password, email, name, is_active, image_id, image_url, created_at, updated_at, role_id
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, uuid, name, is_active, image_id, image_url, created_at, updated_at, role_id
 `
 
 type CreateUserParams struct {
 	Uuid      string         `json:"uuid"`
-	Password  string         `json:"password"`
-	Email     string         `json:"email"`
 	Name      string         `json:"name"`
 	IsActive  int64          `json:"isActive"`
 	ImageID   sql.NullString `json:"imageId"`
@@ -43,8 +74,6 @@ type CreateUserParams struct {
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Uuid,
-		arg.Password,
-		arg.Email,
 		arg.Name,
 		arg.IsActive,
 		arg.ImageID,
@@ -57,8 +86,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	err := row.Scan(
 		&i.ID,
 		&i.Uuid,
-		&i.Password,
-		&i.Email,
 		&i.Name,
 		&i.IsActive,
 		&i.ImageID,
@@ -70,32 +97,76 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, uuid, password, email, name, is_active, image_id, image_url, created_at, updated_at, role_id
-FROM user
+const createUserCredentials = `-- name: CreateUserCredentials :one
+INSERT INTO user_credentials (
+        user_id,
+        password,
+        email,
+        is_email_verified
+    )
+VALUES (?, ?, ?, ?)
+RETURNING user_id, password, email, is_email_verified
 `
 
-func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
+type CreateUserCredentialsParams struct {
+	UserID          interface{} `json:"userId"`
+	Password        string      `json:"password"`
+	Email           string      `json:"email"`
+	IsEmailVerified int64       `json:"isEmailVerified"`
+}
+
+func (q *Queries) CreateUserCredentials(ctx context.Context, arg CreateUserCredentialsParams) (UserCredentials, error) {
+	row := q.db.QueryRowContext(ctx, createUserCredentials,
+		arg.UserID,
+		arg.Password,
+		arg.Email,
+		arg.IsEmailVerified,
+	)
+	var i UserCredentials
+	err := row.Scan(
+		&i.UserID,
+		&i.Password,
+		&i.Email,
+		&i.IsEmailVerified,
+	)
+	return i, err
+}
+
+const getAllUsers = `-- name: GetAllUsers :many
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
+`
+
+type GetAllUsersRow struct {
+	User            User            `json:"user"`
+	UserCredentials UserCredentials `json:"userCredentials"`
+}
+
+// SELECT user.*, user_credentials.*
+func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllUsers)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []User{}
+	items := []GetAllUsersRow{}
 	for rows.Next() {
-		var i User
+		var i GetAllUsersRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Uuid,
-			&i.Password,
-			&i.Email,
-			&i.Name,
-			&i.IsActive,
-			&i.ImageID,
-			&i.ImageUrl,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.RoleID,
+			&i.User.ID,
+			&i.User.Uuid,
+			&i.User.Name,
+			&i.User.IsActive,
+			&i.User.ImageID,
+			&i.User.ImageUrl,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
+			&i.User.RoleID,
+			&i.UserCredentials.UserID,
+			&i.UserCredentials.Password,
+			&i.UserCredentials.Email,
+			&i.UserCredentials.IsEmailVerified,
 		); err != nil {
 			return nil, err
 		}
@@ -111,19 +182,242 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, uuid, password, email, name, is_active, image_id, image_url, created_at, updated_at, role_id
-FROM user
-WHERE email = ?
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
+WHERE user_credentials.email = ?
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+type GetUserByEmailRow struct {
+	User            User            `json:"user"`
+	UserCredentials UserCredentials `json:"userCredentials"`
+}
+
+// SELECT user.*, user_credentials.*
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.UserCredentials.UserID,
+		&i.UserCredentials.Password,
+		&i.UserCredentials.Email,
+		&i.UserCredentials.IsEmailVerified,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
+WHERE id = ?
+`
+
+type GetUserByIDRow struct {
+	User            User            `json:"user"`
+	UserCredentials UserCredentials `json:"userCredentials"`
+}
+
+// SELECT user.*, user_credentials.*
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i GetUserByIDRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.UserCredentials.UserID,
+		&i.UserCredentials.Password,
+		&i.UserCredentials.Email,
+		&i.UserCredentials.IsEmailVerified,
+	)
+	return i, err
+}
+
+const getUserByOauthProvider = `-- name: GetUserByOauthProvider :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, oauth_user.oauth_provider_id, oauth_user.user_id, oauth_user.external_user_id, oauth_user.email
+FROM user 
+INNER JOIN oauth_user ON user.id = oauth_user.user_id
+WHERE oauth_user.external_user_id = ? AND oauth_user.oauth_provider_id = ?
+`
+
+type GetUserByOauthProviderParams struct {
+	ExternalUserID  string `json:"externalUserId"`
+	OauthProviderID int64  `json:"oauthProviderId"`
+}
+
+type GetUserByOauthProviderRow struct {
+	User      User      `json:"user"`
+	OauthUser OauthUser `json:"oauthUser"`
+}
+
+func (q *Queries) GetUserByOauthProvider(ctx context.Context, arg GetUserByOauthProviderParams) (GetUserByOauthProviderRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByOauthProvider, arg.ExternalUserID, arg.OauthProviderID)
+	var i GetUserByOauthProviderRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.OauthUser.OauthProviderID,
+		&i.OauthUser.UserID,
+		&i.OauthUser.ExternalUserID,
+		&i.OauthUser.Email,
+	)
+	return i, err
+}
+
+const getUserByResetPasswordToken = `-- name: GetUserByResetPasswordToken :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, reset_password_token.user_id, reset_password_token.token, reset_password_token.expires_at, reset_password_token.created_at, reset_password_token.updated_at
+FROM user
+INNER JOIN reset_password_token ON user.id = reset_password_token.user_id
+WHERE reset_password_token.token = ?
+`
+
+type GetUserByResetPasswordTokenRow struct {
+	User               User               `json:"user"`
+	ResetPasswordToken ResetPasswordToken `json:"resetPasswordToken"`
+}
+
+func (q *Queries) GetUserByResetPasswordToken(ctx context.Context, token string) (GetUserByResetPasswordTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByResetPasswordToken, token)
+	var i GetUserByResetPasswordTokenRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.ResetPasswordToken.UserID,
+		&i.ResetPasswordToken.Token,
+		&i.ResetPasswordToken.ExpiresAt,
+		&i.ResetPasswordToken.CreatedAt,
+		&i.ResetPasswordToken.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByUUID = `-- name: GetUserByUUID :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+FROM user 
+INNER JOIN user_credentials ON user.id = user_credentials.user_id
+WHERE uuid = ?
+`
+
+type GetUserByUUIDRow struct {
+	User            User            `json:"user"`
+	UserCredentials UserCredentials `json:"userCredentials"`
+}
+
+// SELECT user.*, user_credentials.*
+func (q *Queries) GetUserByUUID(ctx context.Context, uuid string) (GetUserByUUIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUUID, uuid)
+	var i GetUserByUUIDRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.UserCredentials.UserID,
+		&i.UserCredentials.Password,
+		&i.UserCredentials.Email,
+		&i.UserCredentials.IsEmailVerified,
+	)
+	return i, err
+}
+
+const getUserByVerifyEmailToken = `-- name: GetUserByVerifyEmailToken :one
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, verify_email_token.user_id, verify_email_token.token, verify_email_token.expires_at, verify_email_token.created_at, verify_email_token.updated_at
+FROM user
+INNER JOIN verify_email_token ON user.id = verify_email_token.user_id
+WHERE verify_email_token.token = ?
+`
+
+type GetUserByVerifyEmailTokenRow struct {
+	User             User             `json:"user"`
+	VerifyEmailToken VerifyEmailToken `json:"verifyEmailToken"`
+}
+
+func (q *Queries) GetUserByVerifyEmailToken(ctx context.Context, token string) (GetUserByVerifyEmailTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByVerifyEmailToken, token)
+	var i GetUserByVerifyEmailTokenRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Uuid,
+		&i.User.Name,
+		&i.User.IsActive,
+		&i.User.ImageID,
+		&i.User.ImageUrl,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.RoleID,
+		&i.VerifyEmailToken.UserID,
+		&i.VerifyEmailToken.Token,
+		&i.VerifyEmailToken.ExpiresAt,
+		&i.VerifyEmailToken.CreatedAt,
+		&i.VerifyEmailToken.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE user
+SET 
+    name = COALESCE(?1, name), 
+    is_active = COALESCE(?2, is_active),
+    updated_at = ?3
+WHERE 
+    uuid = ?4
+RETURNING id, uuid, name, is_active, image_id, image_url, created_at, updated_at, role_id
+`
+
+type UpdateUserParams struct {
+	Name      sql.NullString `json:"name"`
+	IsActive  sql.NullInt64  `json:"isActive"`
+	UpdatedAt sql.NullString `json:"updatedAt"`
+	Uuid      string         `json:"uuid"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.Name,
+		arg.IsActive,
+		arg.UpdatedAt,
+		arg.Uuid,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Uuid,
-		&i.Password,
-		&i.Email,
 		&i.Name,
 		&i.IsActive,
 		&i.ImageID,
@@ -135,27 +429,34 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
-const getUserByID = `-- name: GetUserByID :one
-SELECT id, uuid, password, email, name, is_active, image_id, image_url, created_at, updated_at, role_id
-FROM user
-WHERE id = ?
+const updateUserIsEmailVerified = `-- name: UpdateUserIsEmailVerified :exec
+UPDATE user_credentials
+SET is_email_verified = ?
+WHERE user_id = ?
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByID, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Uuid,
-		&i.Password,
-		&i.Email,
-		&i.Name,
-		&i.IsActive,
-		&i.ImageID,
-		&i.ImageUrl,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.RoleID,
-	)
-	return i, err
+type UpdateUserIsEmailVerifiedParams struct {
+	IsEmailVerified int64       `json:"isEmailVerified"`
+	UserID          interface{} `json:"userId"`
+}
+
+func (q *Queries) UpdateUserIsEmailVerified(ctx context.Context, arg UpdateUserIsEmailVerifiedParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserIsEmailVerified, arg.IsEmailVerified, arg.UserID)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE user_credentials
+SET password = ?
+WHERE user_id = ?
+`
+
+type UpdateUserPasswordParams struct {
+	Password string      `json:"password"`
+	UserID   interface{} `json:"userId"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Password, arg.UserID)
+	return err
 }

@@ -11,5 +11,9 @@ sql:
       json_tags_case_style: camel
       emit_prepared_queries: false
       emit_interface: true
-      emit_exact_table_names: false
+      emit_exact_table_names: true
       emit_empty_slices: true
+overrides:
+  go:
+    rename:
+      user_credential: UserCredentials

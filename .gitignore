@@ -1,3 +1,4 @@
+logs
 *.log
 .vscode
 
@@ -10,6 +11,7 @@
 
 *.env*
 !.env.template
+config.yaml
 
 .history/
 tmp/

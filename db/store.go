@@ -10,10 +10,14 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog/log"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 const (
 	maxConnectAttempts = 10
+	migrationPath      = "sql/migration"
+	sqlDialect         = "sqlite3"
 )
 
 type DataStore interface {
@@ -63,16 +67,17 @@ func (d *Database) ExecTx(ctx context.Context, fn func(*Queries) error) error {
 	return tx.Commit()
 }
 
-// TODO turso
 func (d *Database) Connect() error {
-	log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
-
 	// Note : https://github.com/ncruces/go-sqlite-bench
 	// Thanks to https://www.golang.dk/articles/go-and-sqlite-in-the-cloud
 	// - Set WAL mode (not strictly necessary each time because it's persisted in the database, but good for first run)
 	// - Set busy timeout, so concurrent writers wait on each other instead of erroring immediately
 	// - Enable foreign key checks
+	log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
 	db, err := sql.Open("sqlite3", d.config.DatabaseUrl+"?_journal=WAL&_timeout=5000&_fk=true")
+	// log.Info().Msgf("connecting to database at: %s", d.config.TursoDatabaseUrl)
+	// url := d.config.TursoDatabaseUrl + "?authToken=" + d.config.TursoAuthToken
+	// db, err := sql.Open("libsql", url)
 	if err != nil {
 		return err
 	}
@@ -134,11 +139,11 @@ var embedMigrations embed.FS
 func (d *Database) MigrateUp() error {
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect(sqlDialect); err != nil {
 		return err
 	}
 
-	if err := goose.Up(d.db, "sql/migration"); err != nil {
+	if err := goose.Up(d.db, migrationPath); err != nil {
 		return err
 	}
 
@@ -149,11 +154,11 @@ func (d *Database) MigrateUp() error {
 func (d *Database) MigrateDown() error {
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect(sqlDialect); err != nil {
 		return err
 	}
 
-	if err := goose.Down(d.db, "sql/migration"); err != nil {
+	if err := goose.Down(d.db, migrationPath); err != nil {
 		return err
 	}
 

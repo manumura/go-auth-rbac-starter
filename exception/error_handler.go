@@ -10,6 +10,8 @@ import (
 func UncaughtErrorHandler(ctx *gin.Context, err any) {
 	goErr := errors.Wrap(err, 2)
 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-		"error": goErr.Error(),
+		"message":    goErr.Error(),
+		"error":      http.StatusText(http.StatusInternalServerError),
+		"statusCode": http.StatusInternalServerError,
 	})
 }
