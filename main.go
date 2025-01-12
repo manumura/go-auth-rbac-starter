@@ -9,13 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
-	"github.com/manumura/go-auth-rbac-starter/constant"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/gapi"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
@@ -37,33 +35,17 @@ var interruptSignals = []os.Signal{
 // TODO swagger
 // TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal().Err(err).Msg("error loading .env file")
-	}
+	// use a single instance of Validate, it caches struct info
+	validate := validator.New(validator.WithRequiredStructEnabled())
 
-	env := os.Getenv(constant.ENVIRONMENT)
-	if env == "" {
-		env = "dev"
+	config, err := config.LoadConfig("config.yaml", validate)
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot load config")
 		// e := fmt.Errorf("environment variable %s is not set", constant.ENVIRONMENT)
 		// panic(e)
 	}
 
-	config.ConfigureLogger(env)
-	log.Info().Msgf("starting main on environment: %s", env)
-
-	// use a single instance of Validate, it caches struct info
-	validate := validator.New(validator.WithRequiredStructEnabled())
-
-	config, err := config.LoadConfig(".env")
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot load config")
-	}
-
-	err = validate.Struct(config)
-	if err != nil {
-		log.Fatal().Err(err).Msg("config validation failed")
-	}
+	log.Info().Msgf("starting main on environment: %s", config.Environment)
 
 	datastore := db.NewDataStore(config)
 	err = datastore.Connect()
