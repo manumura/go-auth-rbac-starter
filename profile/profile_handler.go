@@ -5,6 +5,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -185,10 +186,9 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 
 	fmt.Println(output)
 
-	// TODO
-	// if err := os.Remove(tmpFile); err != nil {
-	// 	log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
-	// }
+	if err := os.Remove(tmpFile); err != nil {
+		log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
+	}
 }
 
 func getFileExtension(file *multipart.FileHeader) (string, error) {

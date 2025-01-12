@@ -49,8 +49,7 @@ type appConfig struct {
 func LoadConfig(file string, validate *validator.Validate) (Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal().Err(err).Msg("error loading .env file")
-		return Config{}, err
+		log.Warn().Err(err).Msg("error loading .env file")
 	}
 
 	var envConfig envCongig
