@@ -1,24 +1,19 @@
 package profile
 
 import (
-	"fmt"
 	"mime"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	conf "github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/storage"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
@@ -33,13 +28,15 @@ type ProfileHandler struct {
 	conf.Config
 	*validator.Validate
 	ProfileService
+	storage.StorageService
 }
 
-func NewProfileHandler(profileService ProfileService, config conf.Config, validate *validator.Validate) ProfileHandler {
+func NewProfileHandler(profileService ProfileService, storageService storage.StorageService, config conf.Config, validate *validator.Validate) ProfileHandler {
 	return ProfileHandler{
 		config,
 		validate,
 		profileService,
+		storageService,
 	}
 }
 
@@ -135,23 +132,16 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
 		return
 	}
-	fmt.Println(file.Filename)
-	fmt.Printf("type: %v\n", file.Header.Get("Content-Type"))
 
-	ext, err := getFileExtension(file)
+	filename, err := getFileName(file, u.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
-	now := time.Now()
-	nowAsString := now.Format("20060102150405")
-	filename := u.Uuid.String() + "_" + nowAsString + ext
+	// tmpFile := TmpDir + "/" + filename
+	// ctx.SaveUploadedFile(file, tmpFile)
 
-	tmpFile := TmpDir + "/" + filename
-	ctx.SaveUploadedFile(file, tmpFile)
-
-	// Upload to S3
 	f, err := file.Open()
 	if err != nil {
 		log.Error().Err(err).Msg("error opening file")
@@ -159,23 +149,16 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		return
 	}
 
-	// https://github.com/aws/aws-sdk-go-v2/issues/1382#issuecomment-1058516508
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(h.Config.AwsRegion),
-	)
+	client, err := h.StorageService.GetS3Client(ctx, h.Config.AwsRegion)
 	if err != nil {
 		log.Error().Err(err).Msg("error loading config")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
-	client := s3.NewFromConfig(cfg)
+	// Delete old image
 	if u.ImageID != "" {
-		// Delete old image
-		_, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: aws.String(h.Config.AwsS3Bucket),
-			Key:    aws.String(u.ImageID),
-		})
+		err = h.StorageService.DeleteObject(ctx, client, h.Config.AwsS3Bucket, u.ImageID)
 		if err != nil {
 			log.Error().Err(err).Msg("error deleting old image")
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
@@ -183,32 +166,38 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		}
 	}
 
-	uploader := manager.NewUploader(client)
-	input := &s3.PutObjectInput{
-		Bucket:            aws.String(h.Config.AwsS3Bucket),
-		Key:               aws.String(S3Dir + "/" + filename),
-		Body:              f,
-		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
-	}
-	output, err := uploader.Upload(ctx, input)
+	// Upload to S3
+	r, err := h.StorageService.UploadObject(ctx, client, h.Config.AwsS3Bucket, S3Dir+"/"+filename, f)
 	if err != nil {
 		log.Error().Err(err).Msg("error uploading file")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
-	if err := os.Remove(tmpFile); err != nil {
-		log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
-	}
-
-	userEntity, err := h.UpdateImageByUserUuid(ctx, u.Uuid, UpdateImageRequest{ImageID: *output.Key, ImageURL: output.Location})
+	userEntity, err := h.UpdateImageByUserUuid(ctx, u.Uuid, UpdateImageRequest{ImageID: r.ID, ImageURL: r.URL})
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
+	// if err := os.Remove(tmpFile); err != nil {
+	// 	log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
+	// }
+
 	authenticatedUser := user.ToAuthenticatedUser(userEntity)
 	ctx.JSON(http.StatusOK, authenticatedUser)
+}
+
+func getFileName(file *multipart.FileHeader, userUuid uuid.UUID) (string, error) {
+	ext, err := getFileExtension(file)
+	if err != nil {
+		return "", err
+	}
+
+	now := time.Now()
+	nowAsString := now.Format("20060102150405")
+	filename := userUuid.String() + "_" + nowAsString + ext
+	return filename, nil
 }
 
 func getFileExtension(file *multipart.FileHeader) (string, error) {

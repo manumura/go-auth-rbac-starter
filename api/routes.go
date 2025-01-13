@@ -11,6 +11,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/profile"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/storage"
 	"github.com/manumura/go-auth-rbac-starter/user"
 )
 
@@ -23,6 +24,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	authenticationService := authentication.NewAuthenticationService(server.datastore)
 	verifyEmailService := authentication.NewVerifyEmailService(server.datastore, userService)
 	resetPasswordService := authentication.NewResetPasswordService(server.datastore, userService)
+	storageService := storage.NewStorageService()
 	profileService := profile.NewProfileService(server.datastore, userService)
 	emailService := message.NewEmailService(config)
 
@@ -31,7 +33,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	verifyEmailHandler := authentication.NewVerifyEmailHandler(verifyEmailService, config, validate)
 	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)
-	profileHandler := profile.NewProfileHandler(profileService, config, validate)
+	profileHandler := profile.NewProfileHandler(profileService, storageService, config, validate)
 
 	router := gin.Default()
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
