@@ -15,15 +15,16 @@ type Config struct {
 }
 
 type envCongig struct {
-	Environment        string `env:"ENV" validate:"required"`
-	JwtSecret          string `env:"JWT_SECRET" validate:"required"`
-	RecaptchaSecretKey string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
-	SmtpUser           string `env:"SMTP_USER" validate:"required"`
-	SmtpPassword       string `env:"SMTP_PASSWORD" validate:"required"`
-	TursoAuthToken     string `env:"TURSO_AUTH_TOKEN" validate:"required"`
-	AwsRegion          string `env:"AWS_REGION" validate:"required"`
-	AwsAccessKeyId     string `env:"AWS_ACCESS_KEY_ID" validate:"required"`
-	AwsSecretAccessKey string `env:"AWS_SECRET_ACCESS_KEY" validate:"required"`
+	Environment                  string `env:"ENV" validate:"required"`
+	JwtSecret                    string `env:"JWT_SECRET" validate:"required"`
+	RecaptchaSecretKey           string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
+	SmtpUser                     string `env:"SMTP_USER" validate:"required"`
+	SmtpPassword                 string `env:"SMTP_PASSWORD" validate:"required"`
+	TursoAuthToken               string `env:"TURSO_AUTH_TOKEN" validate:"required"`
+	AwsRegion                    string `env:"AWS_REGION" validate:"required"`
+	AwsAccessKeyId               string `env:"AWS_ACCESS_KEY_ID" validate:"required"`
+	AwsSecretAccessKey           string `env:"AWS_SECRET_ACCESS_KEY" validate:"required"`
+	AwsCloudFrontDistributionUrl string `env:"AWS_CLOUDFRONT_DISTRIBUTION_URL"` // optional
 }
 
 type appConfig struct {

@@ -66,6 +66,11 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	adminRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService)).Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
 	adminRoutes.GET("/v1/users", userHandler.GetAllUsers)
+	// TODO
+	// adminRoutes.POST("/v1/users", userHandler.CreateUser)
+	// adminRoutes.GET("/v1/users/:uuid", userHandler.GetUser)
+	// adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
+	// adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
 
 	return router
 }

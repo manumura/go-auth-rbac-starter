@@ -167,14 +167,23 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	}
 
 	// Upload to S3
-	r, err := h.StorageService.UploadObject(ctx, client, h.Config.AwsS3Bucket, S3Dir+"/"+filename, f)
+	res, err := h.StorageService.UploadObject(ctx, client, h.Config.AwsS3Bucket, S3Dir+"/"+filename, f)
 	if err != nil {
 		log.Error().Err(err).Msg("error uploading file")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
-	userEntity, err := h.UpdateImageByUserUuid(ctx, u.Uuid, UpdateImageRequest{ImageID: r.ID, ImageURL: r.URL})
+	url := res.URL
+	if h.Config.AwsCloudFrontDistributionUrl != "" {
+		url = h.Config.AwsCloudFrontDistributionUrl + "/" + res.ID
+	}
+
+	r := UpdateImageRequest{
+		ImageID:  res.ID,
+		ImageURL: url,
+	}
+	userEntity, err := h.UpdateImageByUserUuid(ctx, u.Uuid, r)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
