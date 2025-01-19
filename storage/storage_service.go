@@ -16,7 +16,7 @@ import (
 type StorageService interface {
 	GetS3Client(ctx context.Context, region string) (*s3.Client, error)
 	DeleteObject(ctx context.Context, client *s3.Client, bucket string, key string) error
-	UploadObject(ctx context.Context, client *s3.Client, bucket string, key string, body io.Reader) (UploadResponse, error)
+	UploadObject(ctx context.Context, client *s3.Client, bucket string, key string, body io.Reader, contentType string) (UploadResponse, error)
 }
 
 type StorageServiceImpl struct {
@@ -48,13 +48,16 @@ func (s *StorageServiceImpl) DeleteObject(ctx context.Context, client *s3.Client
 	return err
 }
 
-func (s *StorageServiceImpl) UploadObject(ctx context.Context, client *s3.Client, bucket string, key string, body io.Reader) (UploadResponse, error) {
+func (s *StorageServiceImpl) UploadObject(ctx context.Context, client *s3.Client, bucket string, key string, body io.Reader, contentType string) (UploadResponse, error) {
 	uploader := manager.NewUploader(client)
 	input := &s3.PutObjectInput{
 		Bucket:            aws.String(bucket),
 		Key:               aws.String(key),
 		Body:              body,
 		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+		// TODO
+		// ContentDisposition: aws.String("inline"),
+		ContentType: aws.String(contentType),
 	}
 	output, err := uploader.Upload(ctx, input)
 	if err != nil {

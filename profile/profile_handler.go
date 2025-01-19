@@ -167,7 +167,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	}
 
 	// Upload to S3
-	res, err := h.StorageService.UploadObject(ctx, client, h.Config.AwsS3Bucket, S3Dir+"/"+filename, f)
+	res, err := h.StorageService.UploadObject(ctx, client, h.Config.AwsS3Bucket, S3Dir+"/"+filename, f, file.Header.Get("Content-Type"))
 	if err != nil {
 		log.Error().Err(err).Msg("error uploading file")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
