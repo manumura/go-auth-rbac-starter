@@ -55,7 +55,6 @@ func (s *StorageServiceImpl) UploadObject(ctx context.Context, client *s3.Client
 		Key:               aws.String(key),
 		Body:              body,
 		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
-		// TODO
 		// ContentDisposition: aws.String("inline"),
 		ContentType: aws.String(contentType),
 	}

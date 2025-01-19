@@ -215,7 +215,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 
 	if errors.Is(err, sql.ErrNoRows) {
 		// User not found : create it
-		u, err = h.CreateOauth(ctx, user.CreateOauthUserRequest{
+		u, err = h.CreateOauth(ctx, user.CreateOauthUserParams{
 			Name:           name,
 			Email:          email,
 			Role:           role.USER,

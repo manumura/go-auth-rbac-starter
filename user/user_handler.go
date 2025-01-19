@@ -45,23 +45,22 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	u, err := h.GetByEmail(ctx, req.Email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	isEmailExist, err := h.isEmailExist(ctx, req.Email)
+	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
-
-	if u.Uuid != uuid.Nil {
-		log.Error().Msg("email already exists")
+	if isEmailExist {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 		return
 	}
 
-	user, err := h.Create(ctx, CreateUserRequest{
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: req.Password,
-		Role:     role.USER,
+	user, err := h.Create(ctx, CreateUserParams{
+		Name:            req.Name,
+		Email:           req.Email,
+		Password:        req.Password,
+		Role:            role.USER,
+		IsEmailVerified: false,
 	})
 
 	if err != nil {
@@ -85,7 +84,54 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
-// TODO Add query params
+func (h *UserHandler) CreateUser(ctx *gin.Context) {
+	var req CreateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	isEmailExist, err := h.isEmailExist(ctx, req.Email)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+	if isEmailExist {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+		return
+	}
+
+	generatedPassword := uuid.New().String()
+	log.Info().Msgf("generated password: %s", generatedPassword)
+
+	user, err := h.Create(ctx, CreateUserParams{
+		Name:            req.Name,
+		Email:           req.Email,
+		Password:        generatedPassword,
+		Role:            req.Role,
+		IsEmailVerified: true,
+	})
+
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	authenticatedUser := ToAuthenticatedUser(user)
+
+	// Send email with generated password
+	go h.EmailService.SendTemporaryPasswordEmail(user.UserCredentials.Email, "", generatedPassword)
+
+	ctx.JSON(http.StatusOK, authenticatedUser)
+}
+
+// TODO Return type User + Add query params + handle multiple providers
 func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	u, err := h.GetAll(ctx)
 	if err != nil {
@@ -95,4 +141,65 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 
 	authenticatedUsers := ToAuthenticatedUsers(u)
 	ctx.JSON(http.StatusOK, authenticatedUsers)
+}
+
+func (h *UserHandler) GetUser(ctx *gin.Context) {
+	userUuidAsString := ctx.Param("uuid")
+	log.Info().Msgf("get user by uuid %s", userUuidAsString)
+
+	_, err := uuid.Parse(userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	u, err := h.GetByUUID(ctx, userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		return
+	}
+
+	user := ToUser(u)
+	ctx.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) DeleteUser(ctx *gin.Context) {
+	userUuidAsString := ctx.Param("uuid")
+	log.Info().Msgf("delete user by uuid %s", userUuidAsString)
+
+	_, err := uuid.Parse(userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	u, err := h.GetByUUID(ctx, userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		return
+	}
+
+	err = h.DeleteByUUID(ctx, userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		return
+	}
+
+	user := ToUser(u)
+	ctx.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) isEmailExist(ctx *gin.Context, email string) (bool, error) {
+	// Check if email already exists
+	u, err := h.GetByEmail(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return true, err
+	}
+
+	if u.Uuid != uuid.Nil {
+		log.Error().Msg("email already exists")
+		return true, nil
+	}
+
+	return false, nil
 }

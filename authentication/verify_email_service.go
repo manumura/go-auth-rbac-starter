@@ -27,7 +27,7 @@ func NewVerifyEmailService(datastore db.DataStore, userService user.UserService)
 
 func (service *VerifyEmailServiceImpl) GetUserByVerifyEmailToken(ctx context.Context, token string) (user.UserEntity, error) {
 	dbUser, err := service.datastore.GetUserByVerifyEmailToken(ctx, token)
-	u := user.UserWithVerifyEmailTokenToUserEntity(dbUser.User, user.VerifyEmailToken{
+	u := user.UserWithVerifyEmailTokenToUserEntity(dbUser.User, user.VerifyEmailTokenEntity{
 		Token:     dbUser.VerifyEmailToken.Token,
 		ExpiresAt: dbUser.VerifyEmailToken.ExpiresAt,
 	})

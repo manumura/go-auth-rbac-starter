@@ -132,6 +132,16 @@ func (q *Queries) CreateUserCredentials(ctx context.Context, arg CreateUserCrede
 	return i, err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM user 
+WHERE uuid = ?
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, uuid string) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, uuid)
+	return err
+}
+
 const getAllUsers = `-- name: GetAllUsers :many
 SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
 FROM user 
@@ -216,15 +226,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id
 FROM user 
-INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE id = ?
 `
 
 type GetUserByIDRow struct {
-	User            User            `json:"user"`
-	UserCredentials UserCredentials `json:"userCredentials"`
+	User User `json:"user"`
 }
 
 // SELECT user.*, user_credentials.*
@@ -241,10 +249,6 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, er
 		&i.User.CreatedAt,
 		&i.User.UpdatedAt,
 		&i.User.RoleID,
-		&i.UserCredentials.UserID,
-		&i.UserCredentials.Password,
-		&i.UserCredentials.Email,
-		&i.UserCredentials.IsEmailVerified,
 	)
 	return i, err
 }
@@ -322,35 +326,55 @@ func (q *Queries) GetUserByResetPasswordToken(ctx context.Context, token string)
 }
 
 const getUserByUUID = `-- name: GetUserByUUID :one
-SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified, oauth_user.oauth_provider_id, oauth_user.user_id, oauth_user.external_user_id, oauth_user.email
 FROM user 
-INNER JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN oauth_user ON user.id = oauth_user.user_id
 WHERE uuid = ?
 `
 
 type GetUserByUUIDRow struct {
-	User            User            `json:"user"`
-	UserCredentials UserCredentials `json:"userCredentials"`
+	ID              int64          `json:"id"`
+	Uuid            string         `json:"uuid"`
+	Name            string         `json:"name"`
+	IsActive        int64          `json:"isActive"`
+	ImageID         sql.NullString `json:"imageId"`
+	ImageUrl        sql.NullString `json:"imageUrl"`
+	CreatedAt       string         `json:"createdAt"`
+	UpdatedAt       sql.NullString `json:"updatedAt"`
+	RoleID          int64          `json:"roleId"`
+	UserID          sql.NullInt64  `json:"userId"`
+	Password        sql.NullString `json:"password"`
+	Email           sql.NullString `json:"email"`
+	IsEmailVerified sql.NullInt64  `json:"isEmailVerified"`
+	OauthProviderID sql.NullInt64  `json:"oauthProviderId"`
+	UserID_2        sql.NullInt64  `json:"userId2"`
+	ExternalUserID  sql.NullString `json:"externalUserId"`
+	Email_2         interface{}    `json:"email2"`
 }
 
-// SELECT user.*, user_credentials.*
+// SELECT sqlc.embed(user), sqlc.embed(user_credentials), sqlc.embed(oauth_user)
 func (q *Queries) GetUserByUUID(ctx context.Context, uuid string) (GetUserByUUIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByUUID, uuid)
 	var i GetUserByUUIDRow
 	err := row.Scan(
-		&i.User.ID,
-		&i.User.Uuid,
-		&i.User.Name,
-		&i.User.IsActive,
-		&i.User.ImageID,
-		&i.User.ImageUrl,
-		&i.User.CreatedAt,
-		&i.User.UpdatedAt,
-		&i.User.RoleID,
-		&i.UserCredentials.UserID,
-		&i.UserCredentials.Password,
-		&i.UserCredentials.Email,
-		&i.UserCredentials.IsEmailVerified,
+		&i.ID,
+		&i.Uuid,
+		&i.Name,
+		&i.IsActive,
+		&i.ImageID,
+		&i.ImageUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RoleID,
+		&i.UserID,
+		&i.Password,
+		&i.Email,
+		&i.IsEmailVerified,
+		&i.OauthProviderID,
+		&i.UserID_2,
+		&i.ExternalUserID,
+		&i.Email_2,
 	)
 	return i, err
 }

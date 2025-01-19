@@ -74,7 +74,7 @@ func (service *ResetPasswordServiceImpl) CreateResetPasswordToken(ctx context.Co
 
 func (service *ResetPasswordServiceImpl) GetUserByResetPasswordToken(ctx context.Context, token string) (user.UserEntity, error) {
 	dbUser, err := service.datastore.GetUserByResetPasswordToken(ctx, token)
-	u := user.UserWithResetPasswordTokenToUserEntity(dbUser.User, user.ResetPasswordToken{
+	u := user.UserWithResetPasswordTokenToUserEntity(dbUser.User, user.ResetPasswordTokenEntity{
 		Token:     dbUser.ResetPasswordToken.Token,
 		ExpiresAt: dbUser.ResetPasswordToken.ExpiresAt,
 	})

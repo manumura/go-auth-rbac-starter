@@ -12,6 +12,10 @@ INSERT INTO user (
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
+-- name: DeleteUser :exec
+DELETE FROM user 
+WHERE uuid = ?;
+
 -- name: CreateUserCredentials :one
 INSERT INTO user_credentials (
         user_id,
@@ -46,17 +50,17 @@ INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE user_credentials.email = ?;
 
 -- name: GetUserByID :one
-SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+SELECT sqlc.embed(user)
 -- SELECT user.*, user_credentials.*
 FROM user 
-INNER JOIN user_credentials ON user.id = user_credentials.user_id
 WHERE id = ?;
 
 -- name: GetUserByUUID :one
-SELECT sqlc.embed(user), sqlc.embed(user_credentials)
--- SELECT user.*, user_credentials.*
+-- SELECT sqlc.embed(user), sqlc.embed(user_credentials), sqlc.embed(oauth_user)
+SELECT user.*, user_credentials.*, oauth_user.*
 FROM user 
-INNER JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN oauth_user ON user.id = oauth_user.user_id
 WHERE uuid = ?;
 
 -- name: GetUserByOauthProvider :one

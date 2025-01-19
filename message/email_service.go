@@ -43,6 +43,7 @@ type EmailService interface {
 	SendRegistrationEmail(to string, langCode string, token string) error
 	SendNewUserEmail(to string, langCode string, newUserEmail string) error
 	SendResetPasswordEmail(to string, langCode string, token string) error
+	SendTemporaryPasswordEmail(to string, langCode string, password string) error
 }
 
 type EmailServiceImpl struct {
@@ -196,5 +197,47 @@ func (service *EmailServiceImpl) SendResetPasswordEmail(to string, langCode stri
 	}
 
 	subject := resetPasswordEmailSubject[langCode]
+	return service.SendEmail(to, subject, body.String())
+}
+
+func (service *EmailServiceImpl) SendTemporaryPasswordEmail(to string, langCode string, password string) error {
+	log.Info().Msgf("send temporary password to: %s", to)
+
+	if to == "" {
+		return fmt.Errorf("email address is required")
+	}
+
+	if password == "" {
+		return fmt.Errorf("password is required")
+	}
+
+	if langCode == "" {
+		langCode = "en"
+	}
+
+	// Read template file
+	// fmt.Println(os.Getwd())
+	file := fmt.Sprintf("%s/%s-%s.html", templateDir, temporaryPasswordEmailTemplate, langCode)
+	tmpl, err := template.ParseFiles(file)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to parse email template")
+		return err
+	}
+
+	// Define data for template
+	data := struct {
+		Password string
+	}{
+		Password: password,
+	}
+
+	// Execute template
+	var body bytes.Buffer
+	if err := tmpl.Execute(&body, data); err != nil {
+		log.Error().Err(err).Msg("failed to execute email template")
+		return err
+	}
+
+	subject := temporaryPasswordEmailSubject[langCode]
 	return service.SendEmail(to, subject, body.String())
 }

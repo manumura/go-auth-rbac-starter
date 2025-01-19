@@ -18,12 +18,13 @@ const (
 )
 
 type UserService interface {
-	Create(ctx context.Context, req CreateUserRequest) (UserEntity, error)
-	CreateOauth(ctx context.Context, req CreateOauthUserRequest) (UserEntity, error)
+	Create(ctx context.Context, req CreateUserParams) (UserEntity, error)
+	CreateOauth(ctx context.Context, req CreateOauthUserParams) (UserEntity, error)
 	GetAll(ctx context.Context) ([]UserEntity, error)
 	GetByEmail(ctx context.Context, email string) (UserEntity, error)
 	GetByID(ctx context.Context, id int64) (UserEntity, error)
 	GetByUUID(ctx context.Context, uuid string) (UserEntity, error)
+	DeleteByUUID(ctx context.Context, uuid string) error
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
 }
@@ -44,7 +45,7 @@ func NewUserService(datastore db.DataStore) UserService {
 	}
 }
 
-func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserRequest) (UserEntity, error) {
+func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserParams) (UserEntity, error) {
 	now := time.Now().UTC()
 	nowAsString := now.Format(time.DateTime)
 
@@ -75,11 +76,15 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 		}
 
 		log.Info().Msg("creating new user credentials")
+		var isEmailVerified int64 = 0
+		if req.IsEmailVerified {
+			isEmailVerified = 1
+		}
 		ucp := db.CreateUserCredentialsParams{
 			UserID:          u.ID,
 			Email:           req.Email,
 			Password:        string(hashedPassword),
-			IsEmailVerified: 0,
+			IsEmailVerified: isEmailVerified,
 		}
 		uc, err := q.CreateUserCredentials(ctx, ucp)
 		if err != nil {
@@ -103,7 +108,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 			return err
 		}
 
-		user = UserCredentialsWithVerifyEmailTokenToUserEntity(u, uc, VerifyEmailToken{
+		user = UserWithCredentialsAndVerifyEmailTokenToUserEntity(u, uc, VerifyEmailTokenEntity{
 			Token:     token,
 			ExpiresAt: expiresAt,
 		})
@@ -114,7 +119,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserReques
 	return user, err
 }
 
-func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauthUserRequest) (UserEntity, error) {
+func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauthUserParams) (UserEntity, error) {
 	now := time.Now().UTC()
 	nowAsString := now.Format(time.DateTime)
 
@@ -152,7 +157,7 @@ func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauth
 			return err
 		}
 
-		user = OauthUserToUserEntity(u, ou)
+		user = UserWithOauthProviderToUserEntity(u, ou)
 		log.Info().Msgf("new user created: %s", user.Uuid)
 		return nil
 	})
@@ -169,7 +174,7 @@ func (service *UserServiceImpl) GetAll(ctx context.Context) ([]UserEntity, error
 
 	users := []UserEntity{}
 	for _, user := range u {
-		users = append(users, UserCredentialsToUserEntity(user.User, user.UserCredentials))
+		users = append(users, UserWithCredentialsToUserEntity(user.User, user.UserCredentials))
 	}
 
 	return users, nil
@@ -182,7 +187,7 @@ func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (U
 		return UserEntity{}, err
 	}
 
-	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
+	return UserWithCredentialsToUserEntity(u.User, u.UserCredentials), nil
 }
 
 func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (UserEntity, error) {
@@ -192,7 +197,7 @@ func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (UserEnti
 		return UserEntity{}, err
 	}
 
-	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
+	return UserToUserEntity(u.User), nil
 }
 
 func (service *UserServiceImpl) GetByUUID(ctx context.Context, uuid string) (UserEntity, error) {
@@ -202,7 +207,8 @@ func (service *UserServiceImpl) GetByUUID(ctx context.Context, uuid string) (Use
 		return UserEntity{}, err
 	}
 
-	return UserCredentialsToUserEntity(u.User, u.UserCredentials), nil
+	user := GetUserByUUIDRowToUserEntity(u)
+	return user, nil
 }
 
 func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error) {
@@ -217,9 +223,13 @@ func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider
 		return UserEntity{}, err
 	}
 
-	return OauthUserToUserEntity(u.User, u.OauthUser), nil
+	return UserWithOauthProviderToUserEntity(u.User, u.OauthUser), nil
 }
 
 func (service *UserServiceImpl) CheckPassword(password string, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+func (service *UserServiceImpl) DeleteByUUID(ctx context.Context, uuid string) error {
+	return service.datastore.DeleteUser(ctx, uuid)
 }

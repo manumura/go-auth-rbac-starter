@@ -17,6 +17,7 @@ type Querier interface {
 	CreateVerifyEmailToken(ctx context.Context, arg CreateVerifyEmailTokenParams) (VerifyEmailToken, error)
 	DeleteAuthenticationToken(ctx context.Context, userID int64) error
 	DeleteResetPasswordToken(ctx context.Context, userID int64) error
+	DeleteUser(ctx context.Context, uuid string) error
 	DeleteVerifyEmailToken(ctx context.Context, userID int64) error
 	// SELECT user.*, user_credentials.*
 	GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error)
@@ -30,7 +31,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByOauthProvider(ctx context.Context, arg GetUserByOauthProviderParams) (GetUserByOauthProviderRow, error)
 	GetUserByResetPasswordToken(ctx context.Context, token string) (GetUserByResetPasswordTokenRow, error)
-	// SELECT user.*, user_credentials.*
+	// SELECT sqlc.embed(user), sqlc.embed(user_credentials), sqlc.embed(oauth_user)
 	GetUserByUUID(ctx context.Context, uuid string) (GetUserByUUIDRow, error)
 	GetUserByVerifyEmailToken(ctx context.Context, token string) (GetUserByVerifyEmailTokenRow, error)
 	GetVerifyEmailTokenByToken(ctx context.Context, token string) (VerifyEmailToken, error)
