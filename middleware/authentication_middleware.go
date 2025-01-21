@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
+	"github.com/manumura/go-auth-rbac-starter/cookie"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/user"
@@ -130,10 +131,17 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 }
 
 func getAuthenticationFromAccessToken(ctx *gin.Context, authenticationService authentication.AuthenticationService) (db.AuthenticationToken, error) {
-	accessToken, err := extractTokenFromHeader(ctx)
+	var accessToken string
+	var err error
+
+	accessToken, err = cookie.ExtractAccessTokenFromCookie(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("error extracting access token from header")
-		return db.AuthenticationToken{}, err
+		log.Error().Err(err).Msg("error extracting access token from cookie")
+		accessToken, err = extractTokenFromHeader(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error extracting access token from header")
+			return db.AuthenticationToken{}, err
+		}
 	}
 
 	a, err := authenticationService.GetByAccessToken(ctx, accessToken)

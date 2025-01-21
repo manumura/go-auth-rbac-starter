@@ -1,7 +1,8 @@
 package api
 
 import (
-	"github.com/gin-contrib/cors"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
@@ -39,16 +40,8 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	router := gin.Default()
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
 	router.Use(middleware.SecurityMiddleware())
-
-	// - No origin allowed by default
-	// - GET,POST, PUT, HEAD methods
-	// - Credentials share disabled
-	// - Preflight requests cached for 12 hours
-	cfg := cors.DefaultConfig()
-	// TODO change to env variable
-	cfg.AllowOrigins = []string{"http://localhost:3001"}
-	cfg.AllowCredentials = true
-	router.Use(cors.New(cfg))
+	allowedOrigins := strings.Split(config.CORSAllowedOrigins, ",")
+	router.Use(middleware.CORSMiddleware(allowedOrigins))
 
 	publicRouterGroup := router.Group(prefix)
 	publicRouterGroup.GET("/v1/index", server.index)

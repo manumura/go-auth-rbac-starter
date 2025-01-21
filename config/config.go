@@ -16,7 +16,8 @@ type Config struct {
 
 type envCongig struct {
 	Environment                  string `env:"ENV" validate:"required"`
-	JwtSecret                    string `env:"JWT_SECRET" validate:"required"`
+	IdTokenKeyAsBase64           string `env:"ID_TOKEN_PRIVATE_KEY_AS_BASE64" validate:"required"`
+	CORSAllowedOrigins           string `env:"CORS_ALLOWED_ORIGNS" validate:"required"`
 	RecaptchaSecretKey           string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
 	SmtpUser                     string `env:"SMTP_USER" validate:"required"`
 	SmtpPassword                 string `env:"SMTP_PASSWORD" validate:"required"`

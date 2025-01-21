@@ -3,21 +3,20 @@ package authentication
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/jaevor/go-nanoid"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/cookie"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/api/idtoken"
 )
 
 type AuthenticationHandler struct {
@@ -78,12 +77,18 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	authResponse, authenticatedUser, err := h.createTokens(u, ctx)
+	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
+	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+		AccessToken:          authResponse.AccessToken,
+		RefreshToken:         authResponse.RefreshToken,
+		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
+		IdToken:              authResponse.IdToken,
+	})
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
@@ -102,7 +107,7 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	authResponse, authenticatedUser, err := h.createTokens(u, ctx)
+	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
@@ -131,6 +136,7 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 		return
 	}
 
+	cookie.DeleteAuthCookies(ctx)
 	log.Info().Msgf("user %s logged out", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
@@ -229,10 +235,10 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 		}
 	}
 
-	return h.createTokens(u, ctx)
+	return h.createAuthenticationTokens(u, ctx)
 }
 
-func (h *AuthenticationHandler) createTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
+func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
 	authenticatedUser := user.ToAuthenticatedUser(u)
 
 	t, err := h.generateTokens(authenticatedUser)
@@ -270,32 +276,23 @@ func (h *AuthenticationHandler) createTokens(u user.UserEntity, ctx context.Cont
 // TODO encrypt SHA256 ?
 func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {
 	now := time.Now().UTC()
-	accessToken, err := nanoid.Standard(21)
+	accessTokenAsString, accessTokenExpiresAt, err := generateToken(now, h.AccessTokenExpiresInAsSeconds)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to generate access token")
 		return authenticationToken{}, err
 	}
-	accessTokenAsString := accessToken()
-	accessTokenExpiresAt := now.Add(time.Duration(h.AccessTokenExpiresInAsSeconds) * time.Second)
 
-	refreshToken, err := nanoid.Standard(21)
+	refreshTokenAsString, refreshTokenExpiresAt, err := generateToken(now, h.RefreshTokenExpiresInAsSeconds)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to generate refresh token")
 		return authenticationToken{}, err
 	}
-	refreshTokenAsString := refreshToken()
-	refreshTokenExpiresAt := now.Add(time.Duration(h.RefreshTokenExpiresInAsSeconds) * time.Second)
 
-	idTokenExpiresAt := now.Add(time.Duration(h.IdTokenExpiresInAsSeconds) * time.Second)
-	idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iat":  now.Format(time.DateTime),
-		"exp":  idTokenExpiresAt,
-		"user": authenticatedUser,
-	})
-
-	idTokenAsString, err := idToken.SignedString([]byte(h.JwtSecret))
+	idTokenKey, err := base64.StdEncoding.DecodeString(h.IdTokenKeyAsBase64)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create id token")
+		log.Error().Err(err).Msg("failed to decode id token key")
+		return authenticationToken{}, err
+	}
+	idTokenAsString, _, err := generateIdToken(now, h.IdTokenExpiresInAsSeconds, idTokenKey, authenticatedUser)
+	if err != nil {
 		return authenticationToken{}, err
 	}
 
@@ -306,18 +303,4 @@ func (h *AuthenticationHandler) generateTokens(authenticatedUser user.Authentica
 		AccessTokenExpiresAt:  accessTokenExpiresAt,
 		RefreshTokenExpiresAt: refreshTokenExpiresAt,
 	}, nil
-}
-
-func verifyGoogleToken(token string, googleClientId string) (*idtoken.Payload, error) {
-	tokenValidator, err := idtoken.NewValidator(context.Background())
-	if err != nil {
-		return &idtoken.Payload{}, err
-	}
-
-	payload, err := tokenValidator.Validate(context.Background(), token, googleClientId)
-	if err != nil {
-		return &idtoken.Payload{}, err
-	}
-
-	return payload, nil
 }
