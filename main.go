@@ -24,9 +24,7 @@ var interruptSignals = []os.Signal{
 	syscall.SIGINT,
 }
 
-// TODO middlewares https://github.com/gin-gonic/contrib?tab=readme-ov-file
-// TODO cookies
-// TODO swagger
+// TODO swagger https://github.com/swaggo/gin-swagger https://lemoncode21.medium.com/how-to-add-swagger-in-golang-gin-6932e8076ec0
 // TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
 	// use a single instance of Validate, it caches struct info

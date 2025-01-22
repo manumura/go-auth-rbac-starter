@@ -48,7 +48,12 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	}
 
 	log.Info().Msgf("get profile for user UUID %s", u.Uuid)
-	ctx.JSON(http.StatusOK, u)
+	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
@@ -73,14 +78,18 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	userEntity, err := h.UpdateProfileByUserUuid(ctx, u.Uuid, req)
+	_, err = h.UpdateProfileByUserUuid(ctx, u.Uuid, req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(userEntity)
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
@@ -105,7 +114,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	userEntity, err := h.UpdatePasswordByUserUuid(ctx, u.Uuid, req)
+	_, err = h.UpdatePasswordByUserUuid(ctx, u.Uuid, req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == exception.ErrNotFound || err == exception.ErrInvalidRequest {
@@ -115,8 +124,12 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(userEntity)
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
@@ -183,7 +196,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		ImageID:  res.ID,
 		ImageURL: url,
 	}
-	userEntity, err := h.UpdateImageByUserUuid(ctx, u.Uuid, r)
+	_, err = h.UpdateImageByUserUuid(ctx, u.Uuid, r)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
@@ -193,8 +206,12 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	// 	log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
 	// }
 
-	authenticatedUser := user.ToAuthenticatedUser(userEntity)
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 func getFileName(file *multipart.FileHeader, userUuid uuid.UUID) (string, error) {
@@ -242,13 +259,16 @@ func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 	}
 
 	log.Info().Msgf("delete profile for user UUID %s", u.Uuid)
-
-	userEntity, err := h.DeleteProfileByUserUuid(ctx, u.Uuid)
+	_, err = h.DeleteProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(userEntity)
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }

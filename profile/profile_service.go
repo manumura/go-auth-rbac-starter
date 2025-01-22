@@ -13,6 +13,7 @@ import (
 )
 
 type ProfileService interface {
+	GetProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.User, error)
 	UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileRequest) (user.UserEntity, error)
 	UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordRequest) (user.UserEntity, error)
 	UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageRequest) (user.UserEntity, error)
@@ -29,6 +30,15 @@ func NewProfileService(datastore db.DataStore, userService user.UserService) Pro
 		datastore:   datastore,
 		userService: userService,
 	}
+}
+
+func (service *ProfileServiceImpl) GetProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.User, error) {
+	u, err := service.userService.GetByUUID(ctx, userUUID.String())
+	if err != nil {
+		return user.User{}, exception.ErrNotFound
+	}
+
+	return user.ToUser(u), err
 }
 
 func (service *ProfileServiceImpl) UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileRequest) (user.UserEntity, error) {

@@ -131,10 +131,7 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 }
 
 func getAuthenticationFromAccessToken(ctx *gin.Context, authenticationService authentication.AuthenticationService) (db.AuthenticationToken, error) {
-	var accessToken string
-	var err error
-
-	accessToken, err = cookie.ExtractAccessTokenFromCookie(ctx)
+	accessToken, err := cookie.ExtractAccessTokenFromCookie(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error extracting access token from cookie")
 		accessToken, err = extractTokenFromHeader(ctx)
@@ -154,10 +151,14 @@ func getAuthenticationFromAccessToken(ctx *gin.Context, authenticationService au
 }
 
 func getAuthenticationFromRefreshToken(ctx *gin.Context, authenticationService authentication.AuthenticationService) (db.AuthenticationToken, error) {
-	refreshToken, err := extractTokenFromHeader(ctx)
+	refreshToken, err := cookie.ExtractRefreshTokenFromCookie(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("error extracting refresh token from header")
-		return db.AuthenticationToken{}, err
+		log.Error().Err(err).Msg("error extracting access token from cookie")
+		refreshToken, err = extractTokenFromHeader(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error extracting refresh token from header")
+			return db.AuthenticationToken{}, err
+		}
 	}
 
 	a, err := authenticationService.GetByRefreshToken(ctx, refreshToken)

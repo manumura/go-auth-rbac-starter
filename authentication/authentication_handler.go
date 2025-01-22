@@ -113,6 +113,12 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
+	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+		AccessToken:          authResponse.AccessToken,
+		RefreshToken:         authResponse.RefreshToken,
+		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
+		IdToken:              authResponse.IdToken,
+	})
 	log.Info().Msgf("user %s token refreshed", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
@@ -166,6 +172,12 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 		return
 	}
 
+	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+		AccessToken:          authResponse.AccessToken,
+		RefreshToken:         authResponse.RefreshToken,
+		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
+		IdToken:              authResponse.IdToken,
+	})
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
@@ -206,6 +218,12 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 		return
 	}
 
+	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+		AccessToken:          authResponse.AccessToken,
+		RefreshToken:         authResponse.RefreshToken,
+		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
+		IdToken:              authResponse.IdToken,
+	})
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusOK, authResponse)
 }
