@@ -37,10 +37,22 @@ VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetAllUsers :many
-SELECT sqlc.embed(user), sqlc.embed(user_credentials)
--- SELECT user.*, user_credentials.*
+-- SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+SELECT user.*, user_credentials.*, oauth_user.*
 FROM user 
-INNER JOIN user_credentials ON user.id = user_credentials.user_id;
+LEFT JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN oauth_user ON user.id = oauth_user.user_id
+WHERE role_id = COALESCE(sqlc.narg(role_id), role_id)
+ORDER BY created_at DESC
+LIMIT COALESCE(CAST(sqlc.narg(limit) AS int), 10) 
+OFFSET COALESCE(CAST(sqlc.narg(offset) AS int), 0);
+
+-- name: CountAllUsers :one
+-- SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+SELECT COUNT(*)
+FROM user 
+WHERE role_id = COALESCE(sqlc.narg(role_id), role_id)
+ORDER BY created_at DESC;
 
 -- name: GetUserByEmail :one
 SELECT sqlc.embed(user), sqlc.embed(user_credentials)

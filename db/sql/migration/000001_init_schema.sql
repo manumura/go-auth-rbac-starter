@@ -28,7 +28,7 @@ CREATE INDEX "AK_user_role_id" ON user (role_id);
 CREATE UNIQUE INDEX "IDX_user_uuid" ON user (uuid);
 
 CREATE TABLE user_credentials (
-	"user_id" int4 INTEGER PRIMARY KEY,
+	"user_id" INTEGER PRIMARY KEY,
 	"password" varchar(255) NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"is_email_verified" INTEGER DEFAULT 0 NOT NULL,

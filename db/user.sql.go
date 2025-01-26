@@ -10,6 +10,21 @@ import (
 	"database/sql"
 )
 
+const countAllUsers = `-- name: CountAllUsers :one
+SELECT COUNT(*)
+FROM user 
+WHERE role_id = COALESCE(?1, role_id)
+ORDER BY created_at DESC
+`
+
+// SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+func (q *Queries) CountAllUsers(ctx context.Context, roleID sql.NullInt64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAllUsers, roleID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createOauthUser = `-- name: CreateOauthUser :one
 INSERT INTO oauth_user (
         oauth_provider_id,
@@ -109,10 +124,10 @@ RETURNING user_id, password, email, is_email_verified
 `
 
 type CreateUserCredentialsParams struct {
-	UserID          interface{} `json:"userId"`
-	Password        string      `json:"password"`
-	Email           string      `json:"email"`
-	IsEmailVerified int64       `json:"isEmailVerified"`
+	UserID          int64  `json:"userId"`
+	Password        string `json:"password"`
+	Email           string `json:"email"`
+	IsEmailVerified int64  `json:"isEmailVerified"`
 }
 
 func (q *Queries) CreateUserCredentials(ctx context.Context, arg CreateUserCredentialsParams) (UserCredentials, error) {
@@ -143,19 +158,45 @@ func (q *Queries) DeleteUser(ctx context.Context, uuid string) error {
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified
+SELECT user.id, user.uuid, user.name, user.is_active, user.image_id, user.image_url, user.created_at, user.updated_at, user.role_id, user_credentials.user_id, user_credentials.password, user_credentials.email, user_credentials.is_email_verified, oauth_user.oauth_provider_id, oauth_user.user_id, oauth_user.external_user_id, oauth_user.email
 FROM user 
-INNER JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN user_credentials ON user.id = user_credentials.user_id
+LEFT JOIN oauth_user ON user.id = oauth_user.user_id
+WHERE role_id = COALESCE(?1, role_id)
+ORDER BY created_at DESC
+LIMIT COALESCE(CAST(?3 AS int), 10) 
+OFFSET COALESCE(CAST(?2 AS int), 0)
 `
 
-type GetAllUsersRow struct {
-	User            User            `json:"user"`
-	UserCredentials UserCredentials `json:"userCredentials"`
+type GetAllUsersParams struct {
+	RoleID sql.NullInt64 `json:"roleId"`
+	Offset sql.NullInt64 `json:"offset"`
+	Limit  sql.NullInt64 `json:"limit"`
 }
 
-// SELECT user.*, user_credentials.*
-func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllUsers)
+type GetAllUsersRow struct {
+	ID              int64          `json:"id"`
+	Uuid            string         `json:"uuid"`
+	Name            string         `json:"name"`
+	IsActive        int64          `json:"isActive"`
+	ImageID         sql.NullString `json:"imageId"`
+	ImageUrl        sql.NullString `json:"imageUrl"`
+	CreatedAt       string         `json:"createdAt"`
+	UpdatedAt       sql.NullString `json:"updatedAt"`
+	RoleID          int64          `json:"roleId"`
+	UserID          sql.NullInt64  `json:"userId"`
+	Password        sql.NullString `json:"password"`
+	Email           sql.NullString `json:"email"`
+	IsEmailVerified sql.NullInt64  `json:"isEmailVerified"`
+	OauthProviderID sql.NullInt64  `json:"oauthProviderId"`
+	UserID_2        sql.NullInt64  `json:"userId2"`
+	ExternalUserID  sql.NullString `json:"externalUserId"`
+	Email_2         interface{}    `json:"email2"`
+}
+
+// SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+func (q *Queries) GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]GetAllUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllUsers, arg.RoleID, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -164,19 +205,23 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 	for rows.Next() {
 		var i GetAllUsersRow
 		if err := rows.Scan(
-			&i.User.ID,
-			&i.User.Uuid,
-			&i.User.Name,
-			&i.User.IsActive,
-			&i.User.ImageID,
-			&i.User.ImageUrl,
-			&i.User.CreatedAt,
-			&i.User.UpdatedAt,
-			&i.User.RoleID,
-			&i.UserCredentials.UserID,
-			&i.UserCredentials.Password,
-			&i.UserCredentials.Email,
-			&i.UserCredentials.IsEmailVerified,
+			&i.ID,
+			&i.Uuid,
+			&i.Name,
+			&i.IsActive,
+			&i.ImageID,
+			&i.ImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.RoleID,
+			&i.UserID,
+			&i.Password,
+			&i.Email,
+			&i.IsEmailVerified,
+			&i.OauthProviderID,
+			&i.UserID_2,
+			&i.ExternalUserID,
+			&i.Email_2,
 		); err != nil {
 			return nil, err
 		}
@@ -477,7 +522,7 @@ type UpdateUserCredentialsParams struct {
 	Email           sql.NullString `json:"email"`
 	Password        sql.NullString `json:"password"`
 	IsEmailVerified sql.NullInt64  `json:"isEmailVerified"`
-	UserID          interface{}    `json:"userId"`
+	UserID          int64          `json:"userId"`
 }
 
 func (q *Queries) UpdateUserCredentials(ctx context.Context, arg UpdateUserCredentialsParams) (UserCredentials, error) {

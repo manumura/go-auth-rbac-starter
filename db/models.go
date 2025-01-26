@@ -56,10 +56,10 @@ type User struct {
 }
 
 type UserCredentials struct {
-	UserID          interface{} `json:"userId"`
-	Password        string      `json:"password"`
-	Email           string      `json:"email"`
-	IsEmailVerified int64       `json:"isEmailVerified"`
+	UserID          int64  `json:"userId"`
+	Password        string `json:"password"`
+	Email           string `json:"email"`
+	IsEmailVerified int64  `json:"isEmailVerified"`
 }
 
 type VerifyEmailToken struct {

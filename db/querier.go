@@ -6,9 +6,12 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
+	// SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+	CountAllUsers(ctx context.Context, roleID sql.NullInt64) (int64, error)
 	CreateAuthenticationToken(ctx context.Context, arg CreateAuthenticationTokenParams) (AuthenticationToken, error)
 	CreateOauthUser(ctx context.Context, arg CreateOauthUserParams) (OauthUser, error)
 	CreateResetPasswordToken(ctx context.Context, arg CreateResetPasswordTokenParams) (ResetPasswordToken, error)
@@ -19,8 +22,8 @@ type Querier interface {
 	DeleteResetPasswordToken(ctx context.Context, userID int64) error
 	DeleteUser(ctx context.Context, uuid string) error
 	DeleteVerifyEmailToken(ctx context.Context, userID int64) error
-	// SELECT user.*, user_credentials.*
-	GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error)
+	// SELECT sqlc.embed(user), sqlc.embed(user_credentials)
+	GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]GetAllUsersRow, error)
 	GetAuthenticationTokenByAccessToken(ctx context.Context, accessToken string) (AuthenticationToken, error)
 	GetAuthenticationTokenByRefreshToken(ctx context.Context, refreshToken string) (AuthenticationToken, error)
 	GetOauthProviders(ctx context.Context) ([]OauthProvider, error)

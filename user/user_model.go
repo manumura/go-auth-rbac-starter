@@ -119,3 +119,19 @@ type UpdateUserParams struct {
 	Role     *role.Role `json:"role" validate:"omitempty,alpha"`
 	IsActive *bool      `json:"active"`
 }
+
+type GetUsersRequest struct {
+	Role     role.Role `json:"role" validate:"omitempty,alpha"`
+	Page     int       `json:"page" validate:"omitempty,number"`
+	PageSize int       `json:"pageSize" validate:"omitempty,number"`
+}
+
+type GetUsersParams struct {
+	Role   *role.Role `json:"role" validate:"omitempty,alpha"`
+	Limit  int        `json:"limit" validate:"omitempty,number"`
+	Offset int        `json:"offset" validate:"omitempty,number"`
+}
+
+type CountUsersParams struct {
+	Role *role.Role `json:"role" validate:"omitempty,alpha"`
+}

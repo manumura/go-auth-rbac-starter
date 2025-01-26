@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
@@ -131,18 +133,65 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
-// TODO Return type User + Add query params + handle multiple providers
 func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
-	u, err := h.GetAll(ctx)
+	r := role.Role(ctx.Query("role"))
+	page, err := strconv.Atoi(ctx.Query("page"))
+	if err != nil {
+		log.Error().Err(err).Msg("page is not a number")
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(ctx.Query("pageSize"))
+	if err != nil {
+		log.Error().Err(err).Msg("pageSize is not a number")
+		pageSize = 10
+	}
+	req := GetUsersRequest{
+		Role:     r,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	err = h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	offset := (page - 1) * pageSize
+	p := GetUsersParams{
+		Limit:  pageSize,
+		Offset: offset,
+	}
+	if r != "" {
+		p.Role = &r
+	}
+
+	u, err := h.GetAll(ctx, p)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
-	authenticatedUsers := ToAuthenticatedUsers(u)
-	ctx.JSON(http.StatusOK, authenticatedUsers)
+	cp := CountUsersParams{}
+	if r != "" {
+		cp.Role = &r
+	}
+	c, err := h.CountAll(ctx, cp)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	users := ToUsers(u)
+	pageResponse := common.Page[User]{
+		Elements:      users,
+		TotalElements: c,
+	}
+	ctx.JSON(http.StatusOK, pageResponse)
 }
 
+// TODO handle multiple providers
 func (h *UserHandler) GetUser(ctx *gin.Context) {
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("get user by uuid %s", userUuidAsString)

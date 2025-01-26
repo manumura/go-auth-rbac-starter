@@ -18,9 +18,12 @@ type envCongig struct {
 	Environment                  string `env:"ENV" validate:"required"`
 	IdTokenKeyAsBase64           string `env:"ID_TOKEN_PRIVATE_KEY_AS_BASE64" validate:"required"`
 	CORSAllowedOrigins           string `env:"CORS_ALLOWED_ORIGNS" validate:"required"`
+	GoogleClientId               string `env:"GOOGLE_CLIENT_ID" validate:"required"`
 	RecaptchaSecretKey           string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
 	SmtpUser                     string `env:"SMTP_USER" validate:"required"`
 	SmtpPassword                 string `env:"SMTP_PASSWORD" validate:"required"`
+	DatabaseUrl                  string `env:"DATABASE_URL" validate:"required"`
+	TursoDatabaseUrl             string `env:"TURSO_DATABASE_URL" validate:"required"`
 	TursoAuthToken               string `env:"TURSO_AUTH_TOKEN" validate:"required"`
 	AwsRegion                    string `env:"AWS_REGION" validate:"required"`
 	AwsAccessKeyId               string `env:"AWS_ACCESS_KEY_ID" validate:"required"`
@@ -34,17 +37,14 @@ type appConfig struct {
 	AccessTokenExpiresInAsSeconds  int    `mapstructure:"ACCESS_TOKEN_EXPIRES_IN_AS_SECONDS" validate:"required"`
 	RefreshTokenExpiresInAsSeconds int    `mapstructure:"REFRESH_TOKEN_EXPIRES_IN_AS_SECONDS" validate:"required"`
 	IdTokenExpiresInAsSeconds      int    `mapstructure:"ID_TOKEN_EXPIRES_IN_AS_SECONDS" validate:"required"`
-	GoogleClientId                 string `mapstructure:"GOOGLE_CLIENT_ID" validate:"required"`
 	SmtpHost                       string `mapstructure:"SMTP_HOST" validate:"required"`
 	SmtpPort                       int    `mapstructure:"SMTP_PORT" validate:"required"`
 	SmtpSecure                     bool   `mapstructure:"SMTP_SECURE" validate:"required"`
 	SmtpFrom                       string `mapstructure:"ROOT_ACCOUNT_EMAIL" validate:"required"`
-	DatabaseUrl                    string `mapstructure:"DATABASE_URL" validate:"required"`
 	MaxOpenConnections             int    `mapstructure:"DATABASE_MAX_OPEN_CONNECTIONS" validate:"required"`
 	MaxIdleConnections             int    `mapstructure:"DATABASE_MAX_IDLE_CONNECTIONS" validate:"required"`
 	ConnectionMaxLifetime          int    `mapstructure:"DATABASE_CONNECTION_MAX_LIFETIME_IN_SECONDS" validate:"required"`
 	ConnectionMaxIdleTime          int    `mapstructure:"DATABASE_CONNECTION_MAX_IDLE_TIME_IN_SECONDS" validate:"required"`
-	TursoDatabaseUrl               string `mapstructure:"TURSO_DATABASE_URL" validate:"required"`
 	AwsS3Bucket                    string `mapstructure:"AWS_S3_BUCKET" validate:"required"`
 }
 

@@ -20,7 +20,8 @@ const (
 type UserService interface {
 	Create(ctx context.Context, p CreateUserParams) (UserEntity, error)
 	CreateOauth(ctx context.Context, p CreateOauthUserParams) (UserEntity, error)
-	GetAll(ctx context.Context) ([]UserEntity, error)
+	GetAll(ctx context.Context, p GetUsersParams) ([]UserEntity, error)
+	CountAll(ctx context.Context, p CountUsersParams) (int64, error)
 	GetByEmail(ctx context.Context, email string) (UserEntity, error)
 	GetByID(ctx context.Context, id int64) (UserEntity, error)
 	GetByUUID(ctx context.Context, uuid string) (UserEntity, error)
@@ -166,19 +167,44 @@ func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauth
 	return user, err
 }
 
-func (service *UserServiceImpl) GetAll(ctx context.Context) ([]UserEntity, error) {
-	u, err := service.datastore.GetAllUsers(ctx)
+// TODO DB text to varchar
+func (service *UserServiceImpl) GetAll(ctx context.Context, p GetUsersParams) ([]UserEntity, error) {
+	params := db.GetAllUsersParams{
+		Limit:  sql.NullInt64{Int64: int64(p.Limit), Valid: true},
+		Offset: sql.NullInt64{Int64: int64(p.Offset), Valid: true},
+	}
+	if p.Role != nil {
+		roleId := role.RoleNameToID[p.Role.String()]
+		params.RoleID = sql.NullInt64{Int64: int64(roleId), Valid: true}
+	}
+	dbUsers, err := service.datastore.GetAllUsers(ctx, params)
 	if err != nil {
 		log.Error().Err(err).Msg("fetching all users failed")
 		return []UserEntity{}, err
 	}
 
 	users := []UserEntity{}
-	for _, user := range u {
-		users = append(users, UserWithCredentialsToUserEntity(user.User, user.UserCredentials))
+	for _, dbUser := range dbUsers {
+		u := db.GetUserByUUIDRow(dbUser)
+		users = append(users, GetUserByUUIDRowToUserEntity(u))
 	}
 
 	return users, nil
+}
+
+func (service *UserServiceImpl) CountAll(ctx context.Context, p CountUsersParams) (int64, error) {
+	r := sql.NullInt64{Int64: 0, Valid: false}
+	if p.Role != nil {
+		roleId := role.RoleNameToID[p.Role.String()]
+		r = sql.NullInt64{Int64: int64(roleId), Valid: true}
+	}
+	c, err := service.datastore.CountAllUsers(ctx, r)
+	if err != nil {
+		log.Error().Err(err).Msg("counting all users failed")
+		return 0, err
+	}
+
+	return c, nil
 }
 
 func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (UserEntity, error) {

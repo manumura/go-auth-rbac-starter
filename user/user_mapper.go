@@ -123,17 +123,6 @@ func ToAuthenticatedUser(entity UserEntity) AuthenticatedUser {
 	return authenticatedUser
 }
 
-func ToAuthenticatedUsers(entities []UserEntity) []AuthenticatedUser {
-	authenticatedUsers := []AuthenticatedUser{}
-	for _, u := range entities {
-		if u.Uuid != uuid.Nil {
-			authenticatedUser := ToAuthenticatedUser(u)
-			authenticatedUsers = append(authenticatedUsers, authenticatedUser)
-		}
-	}
-	return authenticatedUsers
-}
-
 func ToOauthUserProvider(entity OauthUserProviderEntity) OauthUserProvider {
 	o := OauthUserProvider{}
 	copier.Copy(&o, &entity)
@@ -167,4 +156,15 @@ func ToUser(entity UserEntity) User {
 		u.Providers = &providers
 	}
 	return u
+}
+
+func ToUsers(entities []UserEntity) []User {
+	users := []User{}
+	for _, u := range entities {
+		if u.Uuid != uuid.Nil {
+			user := ToUser(u)
+			users = append(users, user)
+		}
+	}
+	return users
 }
