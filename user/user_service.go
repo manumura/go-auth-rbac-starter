@@ -18,12 +18,13 @@ const (
 )
 
 type UserService interface {
-	Create(ctx context.Context, req CreateUserParams) (UserEntity, error)
-	CreateOauth(ctx context.Context, req CreateOauthUserParams) (UserEntity, error)
+	Create(ctx context.Context, p CreateUserParams) (UserEntity, error)
+	CreateOauth(ctx context.Context, p CreateOauthUserParams) (UserEntity, error)
 	GetAll(ctx context.Context) ([]UserEntity, error)
 	GetByEmail(ctx context.Context, email string) (UserEntity, error)
 	GetByID(ctx context.Context, id int64) (UserEntity, error)
 	GetByUUID(ctx context.Context, uuid string) (UserEntity, error)
+	UpdateByUUID(ctx context.Context, uuid string, p UpdateUserParams) (UserEntity, error)
 	DeleteByUUID(ctx context.Context, uuid string) error
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
@@ -228,6 +229,86 @@ func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider
 
 func (service *UserServiceImpl) CheckPassword(password string, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p UpdateUserParams) (UserEntity, error) {
+	now := time.Now().UTC()
+	nowAsString := now.Format(time.DateTime)
+
+	var user UserEntity
+	err := service.datastore.ExecTx(ctx, func(q *db.Queries) error {
+		var err error
+
+		u, err := service.datastore.GetUserByUUID(ctx, uuid)
+		if err != nil {
+			log.Error().Err(err).Msgf("user not found with UUID %s", uuid)
+			return err
+		}
+
+		uup := db.UpdateUserParams{}
+
+		if p.Name != nil {
+			uup.Name = sql.NullString{String: *p.Name, Valid: true}
+		}
+
+		if p.Role != nil {
+			roleId := role.RoleNameToID[p.Role.String()]
+			uup.RoleID = sql.NullInt64{Int64: int64(roleId), Valid: true}
+		}
+
+		if p.IsActive != nil {
+			active := 0
+			if *p.IsActive {
+				active = 1
+			}
+			uup.IsActive = sql.NullInt64{Int64: int64(active), Valid: true}
+		}
+
+		if uup.Name.Valid || uup.RoleID.Valid || uup.IsActive.Valid {
+			log.Info().Msgf("updating user with UUID %s", uuid)
+			uup.Uuid = uuid
+			uup.UpdatedAt = sql.NullString{String: nowAsString, Valid: true}
+
+			_, err = service.datastore.UpdateUser(ctx, uup)
+			if err != nil {
+				log.Error().Err(err).Msg(err.Error())
+				return err
+			}
+		}
+
+		uucp := db.UpdateUserCredentialsParams{}
+
+		if p.Email != nil {
+			uucp.Email = sql.NullString{String: *p.Email, Valid: true}
+		}
+
+		if p.Password != nil {
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*p.Password), bcrypt.DefaultCost)
+			if err != nil {
+				log.Error().Err(err).Msg(err.Error())
+				return err
+			}
+
+			uucp.Password = sql.NullString{String: string(hashedPassword), Valid: true}
+		}
+
+		if uucp.Email.Valid || uucp.Password.Valid {
+			log.Info().Msgf("updating user credentials with user ID %d", u.ID)
+			uucp.UserID = u.ID
+
+			_, err = service.datastore.UpdateUserCredentials(ctx, uucp)
+			if err != nil {
+				log.Error().Err(err).Msg(err.Error())
+				return err
+			}
+		}
+
+		log.Info().Msgf("user with UUID updated %s", u.Uuid)
+		user = GetUserByUUIDRowToUserEntity(u)
+		return nil
+	})
+
+	return user, err
 }
 
 func (service *UserServiceImpl) DeleteByUUID(ctx context.Context, uuid string) error {

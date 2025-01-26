@@ -420,9 +420,10 @@ SET
     image_id = COALESCE(?2, image_id),
     image_url = COALESCE(?3, image_url),
     is_active = COALESCE(?4, is_active),
-    updated_at = ?5
+    role_id = COALESCE(?5, role_id),
+    updated_at = ?6
 WHERE 
-    uuid = ?6
+    uuid = ?7
 RETURNING id, uuid, name, is_active, image_id, image_url, created_at, updated_at, role_id
 `
 
@@ -431,6 +432,7 @@ type UpdateUserParams struct {
 	ImageID   sql.NullString `json:"imageId"`
 	ImageUrl  sql.NullString `json:"imageUrl"`
 	IsActive  sql.NullInt64  `json:"isActive"`
+	RoleID    sql.NullInt64  `json:"roleId"`
 	UpdatedAt sql.NullString `json:"updatedAt"`
 	Uuid      string         `json:"uuid"`
 }
@@ -441,6 +443,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.ImageID,
 		arg.ImageUrl,
 		arg.IsActive,
+		arg.RoleID,
 		arg.UpdatedAt,
 		arg.Uuid,
 	)
@@ -459,34 +462,37 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	return i, err
 }
 
-const updateUserIsEmailVerified = `-- name: UpdateUserIsEmailVerified :exec
+const updateUserCredentials = `-- name: UpdateUserCredentials :one
 UPDATE user_credentials
-SET is_email_verified = ?
-WHERE user_id = ?
+SET 
+    email = COALESCE(?1, email),
+    password = COALESCE(?2, password),
+    is_email_verified = COALESCE(?3, is_email_verified)
+WHERE 
+    user_id = ?4
+RETURNING user_id, password, email, is_email_verified
 `
 
-type UpdateUserIsEmailVerifiedParams struct {
-	IsEmailVerified int64       `json:"isEmailVerified"`
-	UserID          interface{} `json:"userId"`
+type UpdateUserCredentialsParams struct {
+	Email           sql.NullString `json:"email"`
+	Password        sql.NullString `json:"password"`
+	IsEmailVerified sql.NullInt64  `json:"isEmailVerified"`
+	UserID          interface{}    `json:"userId"`
 }
 
-func (q *Queries) UpdateUserIsEmailVerified(ctx context.Context, arg UpdateUserIsEmailVerifiedParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserIsEmailVerified, arg.IsEmailVerified, arg.UserID)
-	return err
-}
-
-const updateUserPassword = `-- name: UpdateUserPassword :exec
-UPDATE user_credentials
-SET password = ?
-WHERE user_id = ?
-`
-
-type UpdateUserPasswordParams struct {
-	Password string      `json:"password"`
-	UserID   interface{} `json:"userId"`
-}
-
-func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Password, arg.UserID)
-	return err
+func (q *Queries) UpdateUserCredentials(ctx context.Context, arg UpdateUserCredentialsParams) (UserCredentials, error) {
+	row := q.db.QueryRowContext(ctx, updateUserCredentials,
+		arg.Email,
+		arg.Password,
+		arg.IsEmailVerified,
+		arg.UserID,
+	)
+	var i UserCredentials
+	err := row.Scan(
+		&i.UserID,
+		&i.Password,
+		&i.Email,
+		&i.IsEmailVerified,
+	)
+	return i, err
 }

@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/user"
@@ -39,10 +40,11 @@ func (service *VerifyEmailServiceImpl) UpdateIsEmailVerified(ctx context.Context
 		var err error
 
 		log.Info().Msg("updating user email verified")
-		err = service.datastore.UpdateUserIsEmailVerified(ctx, db.UpdateUserIsEmailVerifiedParams{
+		p := db.UpdateUserCredentialsParams{
 			UserID:          userID,
-			IsEmailVerified: 1,
-		})
+			IsEmailVerified: sql.NullInt64{Int64: 1, Valid: true},
+		}
+		_, err = service.datastore.UpdateUserCredentials(ctx, p)
 		if err != nil {
 			log.Error().Err(err).Msg(err.Error())
 			return err

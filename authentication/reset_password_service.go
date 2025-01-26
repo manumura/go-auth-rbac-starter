@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -91,11 +92,11 @@ func (service *ResetPasswordServiceImpl) UpdatePassword(ctx context.Context, use
 		// var err error
 
 		log.Info().Msg("update user password by userID")
-		p := db.UpdateUserPasswordParams{
-			Password: string(hashedPassword),
+		p := db.UpdateUserCredentialsParams{
+			Password: sql.NullString{String: string(hashedPassword), Valid: true},
 			UserID:   userID,
 		}
-		err = q.UpdateUserPassword(ctx, p)
+		_, err = q.UpdateUserCredentials(ctx, p)
 		if err != nil {
 			return err
 		}

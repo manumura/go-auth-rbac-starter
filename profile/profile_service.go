@@ -13,6 +13,7 @@ import (
 )
 
 type ProfileService interface {
+	// TODO params instead of request
 	GetProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.User, error)
 	UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileRequest) (user.UserEntity, error)
 	UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordRequest) (user.UserEntity, error)
@@ -75,11 +76,11 @@ func (service *ProfileServiceImpl) UpdatePasswordByUserUuid(ctx context.Context,
 		return user.UserEntity{}, err
 	}
 
-	p := db.UpdateUserPasswordParams{
+	p := db.UpdateUserCredentialsParams{
 		UserID:   u.ID,
-		Password: string(hashedPassword),
+		Password: sql.NullString{String: string(hashedPassword), Valid: true},
 	}
-	err = service.datastore.UpdateUserPassword(ctx, p)
+	_, err = service.datastore.UpdateUserCredentials(ctx, p)
 	if err != nil {
 		return user.UserEntity{}, err
 	}

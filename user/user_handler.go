@@ -45,7 +45,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	isEmailExist, err := h.isEmailExist(ctx, req.Email)
+	isEmailExist, err := h.isEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
@@ -97,7 +97,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	isEmailExist, err := h.isEmailExist(ctx, req.Email)
+	isEmailExist, err := h.isEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
@@ -163,6 +163,58 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+func (h *UserHandler) UpdateUser(ctx *gin.Context) {
+	userUuidAsString := ctx.Param("uuid")
+	log.Info().Msgf("update user by uuid %s", userUuidAsString)
+
+	userUUID, err := uuid.Parse(userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	var req UpdateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	// returns nil or ValidationErrors ( []FieldError )
+	err = h.Validate.Struct(req)
+	if err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	if req.Email != nil {
+		isEmailExist, err := h.isEmailExist(ctx, *req.Email, userUUID)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+			return
+		}
+		if isEmailExist {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+			return
+		}
+	}
+
+	_, err = h.UpdateByUUID(ctx, userUuidAsString, UpdateUserParams(req))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	u, err := h.GetByUUID(ctx, userUuidAsString)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		return
+	}
+
+	user := ToUser(u)
+	ctx.JSON(http.StatusOK, user)
+}
+
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("delete user by uuid %s", userUuidAsString)
@@ -181,7 +233,7 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 
 	err = h.DeleteByUUID(ctx, userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -189,15 +241,19 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (h *UserHandler) isEmailExist(ctx *gin.Context, email string) (bool, error) {
-	// Check if email already exists
+func (h *UserHandler) isEmailExist(ctx *gin.Context, email string, userUUID uuid.UUID) (bool, error) {
 	u, err := h.GetByEmail(ctx, email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return true, err
+		return false, err
+	}
+
+	if u.Uuid == userUUID {
+		log.Info().Msgf("email %s belongs to the same user", email)
+		return false, nil
 	}
 
 	if u.Uuid != uuid.Nil {
-		log.Error().Msg("email already exists")
+		log.Error().Msgf("email %s already exists", email)
 		return true, nil
 	}
 

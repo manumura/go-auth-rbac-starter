@@ -36,8 +36,7 @@ type Querier interface {
 	GetUserByVerifyEmailToken(ctx context.Context, token string) (GetUserByVerifyEmailTokenRow, error)
 	GetVerifyEmailTokenByToken(ctx context.Context, token string) (VerifyEmailToken, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
-	UpdateUserIsEmailVerified(ctx context.Context, arg UpdateUserIsEmailVerifiedParams) error
-	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	UpdateUserCredentials(ctx context.Context, arg UpdateUserCredentialsParams) (UserCredentials, error)
 }
 
 var _ Querier = (*Queries)(nil)

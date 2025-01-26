@@ -75,21 +75,21 @@ FROM user
 INNER JOIN verify_email_token ON user.id = verify_email_token.user_id
 WHERE verify_email_token.token = ?;
 
--- name: UpdateUserIsEmailVerified :exec
-UPDATE user_credentials
-SET is_email_verified = ?
-WHERE user_id = ?;
-
 -- name: GetUserByResetPasswordToken :one
 SELECT sqlc.embed(user), sqlc.embed(reset_password_token)
 FROM user
 INNER JOIN reset_password_token ON user.id = reset_password_token.user_id
 WHERE reset_password_token.token = ?;
 
--- name: UpdateUserPassword :exec
+-- name: UpdateUserCredentials :one
 UPDATE user_credentials
-SET password = ?
-WHERE user_id = ?;
+SET 
+    email = COALESCE(sqlc.narg(email), email),
+    password = COALESCE(sqlc.narg(password), password),
+    is_email_verified = COALESCE(sqlc.narg(is_email_verified), is_email_verified)
+WHERE 
+    user_id = sqlc.arg(user_id)
+RETURNING *;
 
 -- name: UpdateUser :one
 UPDATE user
@@ -98,6 +98,7 @@ SET
     image_id = COALESCE(sqlc.narg(image_id), image_id),
     image_url = COALESCE(sqlc.narg(image_url), image_url),
     is_active = COALESCE(sqlc.narg(is_active), is_active),
+    role_id = COALESCE(sqlc.narg(role_id), role_id),
     updated_at = sqlc.narg(updated_at)
 WHERE 
     uuid = sqlc.arg(uuid)

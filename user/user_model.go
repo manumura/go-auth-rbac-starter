@@ -103,3 +103,19 @@ type CreateOauthUserParams struct {
 	OauthProvider  oauthprovider.OauthProvider `json:"oauthProvider" validate:"required,alpha"`
 	ExternalUserID string                      `json:"externalUserId" validate:"required"`
 }
+
+type UpdateUserRequest struct {
+	Name     *string    `json:"name" validate:"omitempty,min=6,max=100"`
+	Email    *string    `json:"email" validate:"omitempty,email"`
+	Password *string    `json:"password"`
+	Role     *role.Role `json:"role" validate:"omitempty,alpha"`
+	IsActive *bool      `json:"active"`
+}
+
+type UpdateUserParams struct {
+	Name     *string    `json:"name" validate:"omitempty,min=6,max=100"`
+	Email    *string    `json:"email" validate:"omitempty,email"`
+	Password *string    `json:"password"`
+	Role     *role.Role `json:"role" validate:"omitempty,alpha"`
+	IsActive *bool      `json:"active"`
+}
