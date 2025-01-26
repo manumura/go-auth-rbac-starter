@@ -13,11 +13,10 @@ import (
 )
 
 type ProfileService interface {
-	// TODO params instead of request
 	GetProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.User, error)
-	UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileRequest) (user.UserEntity, error)
-	UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordRequest) (user.UserEntity, error)
-	UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageRequest) (user.UserEntity, error)
+	UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileParams) (user.UserEntity, error)
+	UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordParams) (user.UserEntity, error)
+	UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageParams) (user.UserEntity, error)
 	DeleteProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.UserEntity, error)
 }
 
@@ -42,16 +41,16 @@ func (service *ProfileServiceImpl) GetProfileByUserUuid(ctx context.Context, use
 	return user.ToUser(u), err
 }
 
-func (service *ProfileServiceImpl) UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateProfileRequest) (user.UserEntity, error) {
+func (service *ProfileServiceImpl) UpdateProfileByUserUuid(ctx context.Context, userUUID uuid.UUID, p UpdateProfileParams) (user.UserEntity, error) {
 	now := time.Now().UTC()
 	nowAsString := now.Format(time.DateTime)
 
-	p := db.UpdateUserParams{
+	params := db.UpdateUserParams{
 		Uuid:      userUUID.String(),
-		Name:      sql.NullString{String: req.Name, Valid: true},
+		Name:      sql.NullString{String: p.Name, Valid: true},
 		UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
 	}
-	dbUser, err := service.datastore.UpdateUser(ctx, p)
+	dbUser, err := service.datastore.UpdateUser(ctx, params)
 	if err != nil {
 		return user.UserEntity{}, err
 	}
@@ -60,27 +59,27 @@ func (service *ProfileServiceImpl) UpdateProfileByUserUuid(ctx context.Context, 
 	return u, err
 }
 
-func (service *ProfileServiceImpl) UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordRequest) (user.UserEntity, error) {
+func (service *ProfileServiceImpl) UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, p UpdatePasswordParams) (user.UserEntity, error) {
 	u, err := service.userService.GetByUUID(ctx, userUUID.String())
 	if err != nil {
 		return user.UserEntity{}, exception.ErrNotFound
 	}
 
-	err = service.userService.CheckPassword(req.OldPassword, u.UserCredentials.Password)
+	err = service.userService.CheckPassword(p.OldPassword, u.UserCredentials.Password)
 	if err != nil {
 		return user.UserEntity{}, exception.ErrInvalidRequest
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(p.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return user.UserEntity{}, err
 	}
 
-	p := db.UpdateUserCredentialsParams{
+	params := db.UpdateUserCredentialsParams{
 		UserID:   u.ID,
 		Password: sql.NullString{String: string(hashedPassword), Valid: true},
 	}
-	_, err = service.datastore.UpdateUserCredentials(ctx, p)
+	_, err = service.datastore.UpdateUserCredentials(ctx, params)
 	if err != nil {
 		return user.UserEntity{}, err
 	}
@@ -88,17 +87,17 @@ func (service *ProfileServiceImpl) UpdatePasswordByUserUuid(ctx context.Context,
 	return u, err
 }
 
-func (service *ProfileServiceImpl) UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageRequest) (user.UserEntity, error) {
+func (service *ProfileServiceImpl) UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, p UpdateImageParams) (user.UserEntity, error) {
 	now := time.Now().UTC()
 	nowAsString := now.Format(time.DateTime)
 
-	p := db.UpdateUserParams{
+	params := db.UpdateUserParams{
 		Uuid:      userUUID.String(),
-		ImageID:   sql.NullString{String: req.ImageID, Valid: true},
-		ImageUrl:  sql.NullString{String: req.ImageURL, Valid: true},
+		ImageID:   sql.NullString{String: p.ImageID, Valid: true},
+		ImageUrl:  sql.NullString{String: p.ImageURL, Valid: true},
 		UpdatedAt: sql.NullString{String: nowAsString, Valid: true},
 	}
-	dbUser, err := service.datastore.UpdateUser(ctx, p)
+	dbUser, err := service.datastore.UpdateUser(ctx, params)
 	if err != nil {
 		return user.UserEntity{}, err
 	}

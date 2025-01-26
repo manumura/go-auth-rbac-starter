@@ -78,7 +78,7 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.UpdateProfileByUserUuid(ctx, u.Uuid, req)
+	_, err = h.UpdateProfileByUserUuid(ctx, u.Uuid, UpdateProfileParams(req))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
@@ -114,7 +114,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.UpdatePasswordByUserUuid(ctx, u.Uuid, req)
+	_, err = h.UpdatePasswordByUserUuid(ctx, u.Uuid, UpdatePasswordParams(req))
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == exception.ErrNotFound || err == exception.ErrInvalidRequest {
@@ -192,11 +192,11 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		url = h.Config.AwsCloudFrontDistributionUrl + "/" + res.ID
 	}
 
-	r := UpdateImageRequest{
+	p := UpdateImageParams{
 		ImageID:  res.ID,
 		ImageURL: url,
 	}
-	_, err = h.UpdateImageByUserUuid(ctx, u.Uuid, r)
+	_, err = h.UpdateImageByUserUuid(ctx, u.Uuid, p)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 		return
