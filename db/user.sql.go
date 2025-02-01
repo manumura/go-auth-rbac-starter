@@ -37,10 +37,10 @@ RETURNING oauth_provider_id, user_id, external_user_id, email
 `
 
 type CreateOauthUserParams struct {
-	OauthProviderID int64       `json:"oauthProviderId"`
-	UserID          int64       `json:"userId"`
-	ExternalUserID  string      `json:"externalUserId"`
-	Email           interface{} `json:"email"`
+	OauthProviderID int64          `json:"oauthProviderId"`
+	UserID          int64          `json:"userId"`
+	ExternalUserID  string         `json:"externalUserId"`
+	Email           sql.NullString `json:"email"`
 }
 
 func (q *Queries) CreateOauthUser(ctx context.Context, arg CreateOauthUserParams) (OauthUser, error) {
@@ -191,7 +191,7 @@ type GetAllUsersRow struct {
 	OauthProviderID sql.NullInt64  `json:"oauthProviderId"`
 	UserID_2        sql.NullInt64  `json:"userId2"`
 	ExternalUserID  sql.NullString `json:"externalUserId"`
-	Email_2         interface{}    `json:"email2"`
+	Email_2         sql.NullString `json:"email2"`
 }
 
 // SELECT sqlc.embed(user), sqlc.embed(user_credentials)
@@ -395,7 +395,7 @@ type GetUserByUUIDRow struct {
 	OauthProviderID sql.NullInt64  `json:"oauthProviderId"`
 	UserID_2        sql.NullInt64  `json:"userId2"`
 	ExternalUserID  sql.NullString `json:"externalUserId"`
-	Email_2         interface{}    `json:"email2"`
+	Email_2         sql.NullString `json:"email2"`
 }
 
 // SELECT sqlc.embed(user), sqlc.embed(user_credentials), sqlc.embed(oauth_user)

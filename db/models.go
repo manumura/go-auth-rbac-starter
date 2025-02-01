@@ -23,10 +23,10 @@ type OauthProvider struct {
 }
 
 type OauthUser struct {
-	OauthProviderID int64       `json:"oauthProviderId"`
-	UserID          int64       `json:"userId"`
-	ExternalUserID  string      `json:"externalUserId"`
-	Email           interface{} `json:"email"`
+	OauthProviderID int64          `json:"oauthProviderId"`
+	UserID          int64          `json:"userId"`
+	ExternalUserID  string         `json:"externalUserId"`
+	Email           sql.NullString `json:"email"`
 }
 
 type ResetPasswordToken struct {

@@ -63,14 +63,10 @@ func GetUserByUUIDRowToUserEntity(u db.GetUserByUUIDRow) UserEntity {
 	}
 
 	if u.UserID_2.Valid {
-		providerEmail := ""
-		if u.Email_2 != nil {
-			providerEmail = u.Email_2.(string)
-		}
 		oauthUserProvider := OauthUserProviderEntity{
 			ExternalUserID:  u.ExternalUserID.String,
 			OauthProviderID: u.OauthProviderID.Int64,
-			Email:           providerEmail,
+			Email:           u.Email_2.String,
 		}
 		user.OauthUserProvider = oauthUserProvider
 	}
@@ -108,10 +104,15 @@ func UserWithResetPasswordTokenToUserEntity(user db.User, resetPasswordToken Res
 
 func UserWithOauthProviderToUserEntity(user db.User, oauthUser db.OauthUser) UserEntity {
 	u := UserToUserEntity(user)
+
+	email := ""
+	if oauthUser.Email.Valid {
+		email = oauthUser.Email.String
+	}
 	u.OauthUserProvider = OauthUserProviderEntity{
 		OauthProviderID: oauthUser.OauthProviderID,
 		ExternalUserID:  oauthUser.ExternalUserID,
-		Email:           oauthUser.Email.(string),
+		Email:           email,
 	}
 
 	return u

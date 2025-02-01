@@ -1,26 +1,26 @@
 -- +goose Up
 CREATE TABLE oauth_provider (
 	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
-	"name" text NOT NULL
+	"name" VARCHAR(255) NOT NULL
 );
 CREATE UNIQUE INDEX "IDX_oauth_provider_name" ON oauth_provider (name);
 
 CREATE TABLE role (
 	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
-	"name" text NOT NULL,
-	"description" text NOT NULL
+	"name" VARCHAR(255) NOT NULL,
+	"description" VARCHAR(255) NOT NULL
 );
 CREATE UNIQUE INDEX "IDX_role_name" ON role (name);
 
 CREATE TABLE user (
 	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
-	"uuid" text NOT NULL,
-	"name" text NOT NULL,
+	"uuid" VARCHAR(36) NOT NULL,
+	"name" VARCHAR(100) NOT NULL,
 	"is_active" INTEGER NOT NULL,
-	"image_id" text,
-	"image_url" text,
-	"created_at" text NOT NULL,
-	"updated_at" text,
+	"image_id" VARCHAR(255),
+	"image_url" VARCHAR(255),
+	"created_at" VARCHAR(30) NOT NULL,
+	"updated_at" VARCHAR(30),
 	"role_id" INTEGER NOT NULL,
     CONSTRAINT "FK_user_role_id_role_id" FOREIGN KEY (role_id) REFERENCES role (id) ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -40,9 +40,9 @@ CREATE UNIQUE INDEX "REL_user_credentials_user_id" ON user_credentials (user_id)
 CREATE TABLE verify_email_token (
 	"user_id" INTEGER PRIMARY KEY,
 	"token" varchar(50) NOT NULL,
-	"expires_at" text NOT NULL,
-	"created_at" text NOT NULL,
-	"updated_at" text,
+	"expires_at" VARCHAR(30) NOT NULL,
+	"created_at" VARCHAR(30) NOT NULL,
+	"updated_at" VARCHAR(30),
 	CONSTRAINT "FK_verify_email_token_user_id_user_id" FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE UNIQUE INDEX "IDX_verify_email_token_token" ON verify_email_token (token);
@@ -50,11 +50,11 @@ CREATE UNIQUE INDEX "REL_verify_email_token_user_id" ON verify_email_token (user
 
 CREATE TABLE authentication_token (
 	"user_id" INTEGER PRIMARY KEY,
-	"access_token" text NOT NULL,
-	"access_token_expires_at" text NOT NULL,
-	"refresh_token" text NOT NULL,
-	"refresh_token_expires_at" text NOT NULL,
-	"created_at" text NOT NULL,
+	"access_token" VARCHAR(50) NOT NULL,
+	"access_token_expires_at" VARCHAR(30) NOT NULL,
+	"refresh_token" VARCHAR(50) NOT NULL,
+	"refresh_token_expires_at" VARCHAR(30) NOT NULL,
+	"created_at" VARCHAR(30) NOT NULL,
 	CONSTRAINT "FK_authentication_token_user_id_user_id" FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE UNIQUE INDEX "IDX_authentication_token_access_token" ON authentication_token (access_token);
@@ -64,8 +64,8 @@ CREATE UNIQUE INDEX "REL_authentication_token_user_id" ON authentication_token (
 CREATE TABLE oauth_user (
 	"oauth_provider_id" INTEGER NOT NULL,
 	"user_id" INTEGER NOT NULL,
-	"external_user_id" text NOT NULL,
-	"email" text NULL,
+	"external_user_id" VARCHAR(255) NOT NULL,
+	"email" VARCHAR(255),
 	CONSTRAINT oauth_user_pkey PRIMARY KEY (oauth_provider_id, user_id),
 	CONSTRAINT oauth_user_oauth_provider_id_fkey FOREIGN KEY (oauth_provider_id) REFERENCES oauth_provider(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	CONSTRAINT oauth_user_user_id_fkey FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE ON UPDATE CASCADE
@@ -75,10 +75,10 @@ CREATE UNIQUE INDEX oauth_user_external_user_id_oauth_provider_id_key ON oauth_u
 
 CREATE TABLE reset_password_token (
 	"user_id" INTEGER PRIMARY KEY,
-	"token" text NOT NULL,
-	"expires_at" text NOT NULL,
-	"created_at" text NOT NULL,
-	"updated_at" text,
+	"token" VARCHAR(50) NOT NULL,
+	"expires_at" VARCHAR(30) NOT NULL,
+	"created_at" VARCHAR(30) NOT NULL,
+	"updated_at" VARCHAR(30),
 	CONSTRAINT "FK_reset_password_token_user_id_user_id" FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE UNIQUE INDEX "IDX_reset_password_token_token" ON reset_password_token (token);

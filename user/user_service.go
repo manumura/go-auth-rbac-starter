@@ -150,7 +150,7 @@ func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauth
 			UserID:          u.ID,
 			OauthProviderID: oauthprovider.OauthProviderNameToID[req.OauthProvider.String()],
 			ExternalUserID:  req.ExternalUserID,
-			Email:           req.Email,
+			Email:           sql.NullString{String: req.Email, Valid: true},
 		}
 
 		ou, err := q.CreateOauthUser(ctx, oup)
@@ -167,7 +167,6 @@ func (service *UserServiceImpl) CreateOauth(ctx context.Context, req CreateOauth
 	return user, err
 }
 
-// TODO DB text to varchar
 func (service *UserServiceImpl) GetAll(ctx context.Context, p GetUsersParams) ([]UserEntity, error) {
 	params := db.GetAllUsersParams{
 		Limit:  sql.NullInt64{Int64: int64(p.Limit), Valid: true},
