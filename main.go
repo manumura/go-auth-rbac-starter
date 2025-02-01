@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,14 +26,26 @@ var interruptSignals = []os.Signal{
 }
 
 // TODO swagger https://github.com/swaggo/gin-swagger https://lemoncode21.medium.com/how-to-add-swagger-in-golang-gin-6932e8076ec0
-// TODO run func in main https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func main() {
+	ctx := context.Background()
+	if err := run(ctx, os.Args, os.Stdin, os.Stdout, os.Stderr); err != nil {
+		log.Fatal().Err(err).Msg("application stopped with error")
+	}
+}
+
+// https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
+func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+	ctx, cancel := signal.NotifyContext(context.Background(), interruptSignals...)
+	defer cancel()
+	waitGroup, ctx := errgroup.WithContext(ctx)
+
 	// use a single instance of Validate, it caches struct info
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	config, err := config.LoadConfig("config.yaml", validate)
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot load config")
+		log.Error().Err(err).Msg("cannot load config")
+		return err
 		// e := fmt.Errorf("environment variable %s is not set", constant.ENVIRONMENT)
 		// panic(e)
 	}
@@ -42,27 +55,26 @@ func main() {
 	datastore := db.NewDataStore(config)
 	err = datastore.Connect()
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot connect to database")
-		return
+		log.Error().Err(err).Msg("cannot connect to database")
+		return err
 	}
 	defer datastore.Close()
 
 	err = datastore.MigrateUp()
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot migrate up")
-		return
+		log.Error().Err(err).Msg("cannot migrate up")
+		return err
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
-	defer stop()
-	waitGroup, ctx := errgroup.WithContext(ctx)
 
 	runHttpServer(ctx, waitGroup, config, datastore, validate)
 
 	err = waitGroup.Wait()
 	if err != nil {
-		log.Fatal().Err(err).Msg("error from wait group")
+		log.Error().Err(err).Msg("error from wait group")
+		return err
 	}
+
+	return nil
 }
 
 func runHttpServer(ctx context.Context,
