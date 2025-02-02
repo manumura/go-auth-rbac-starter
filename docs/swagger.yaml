@@ -1,4 +1,23 @@
 definitions:
+  authentication.AuthenticatedUser:
+    properties:
+      createdAt:
+        type: string
+      imageId:
+        type: string
+      imageUrl:
+        type: string
+      isActive:
+        type: boolean
+      name:
+        type: string
+      role:
+        $ref: '#/definitions/role.Role'
+      updatedAt:
+        type: string
+      uuid:
+        type: string
+    type: object
   authentication.AuthenticationResponse:
     properties:
       accessToken:
@@ -9,6 +28,13 @@ definitions:
         type: string
       refreshToken:
         type: string
+    type: object
+  authentication.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
     type: object
   authentication.LoginRequest:
     properties:
@@ -34,6 +60,45 @@ definitions:
     - name
     type: object
   authentication.Oauth2GoogleLoginRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  authentication.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 6
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  authentication.ResetPasswordRequest:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+    required:
+    - password
+    - token
+    type: object
+  authentication.VerifyEmailRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  captcha.ValidateCaptchaRequest:
     properties:
       token:
         type: string
@@ -93,25 +158,6 @@ definitions:
     x-enum-varnames:
     - ADMIN
     - USER
-  user.AuthenticatedUser:
-    properties:
-      createdAt:
-        type: string
-      imageId:
-        type: string
-      imageUrl:
-        type: string
-      isActive:
-        type: boolean
-      name:
-        type: string
-      role:
-        $ref: '#/definitions/role.Role'
-      updatedAt:
-        type: string
-      uuid:
-        type: string
-    type: object
   user.CreateUserRequest:
     properties:
       email:
@@ -134,21 +180,6 @@ definitions:
         type: string
       provider:
         type: string
-    type: object
-  user.RegisterRequest:
-    properties:
-      email:
-        type: string
-      name:
-        maxLength: 100
-        minLength: 6
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - name
-    - password
     type: object
   user.UpdateUserRequest:
     properties:
@@ -193,6 +224,40 @@ definitions:
 info:
   contact: {}
 paths:
+  /v1/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: forgot password
+      parameters:
+      - description: Forgot Password Request
+        in: body
+        name: ForgotPasswordRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: forgot password
+      tags:
+      - reset password
   /v1/index:
     get:
       consumes:
@@ -290,6 +355,40 @@ paths:
       summary: logout
       tags:
       - authentication
+  /v1/new-password:
+    post:
+      consumes:
+      - application/json
+      description: reset password
+      parameters:
+      - description: Reset Password Request
+        in: body
+        name: ResetPasswordRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticatedUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: reset password
+      tags:
+      - reset password
   /v1/oauth2/facebook:
     post:
       consumes:
@@ -570,6 +669,36 @@ paths:
       summary: update password
       tags:
       - profile
+  /v1/recaptcha:
+    post:
+      consumes:
+      - application/json
+      description: validate captcha
+      parameters:
+      - description: Validate Captcha Request
+        in: body
+        name: ValidateCaptchaRequest
+        required: true
+        schema:
+          $ref: '#/definitions/captcha.ValidateCaptchaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: bool
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: validate captcha
+      tags:
+      - recaptcha
   /v1/refresh-token:
     post:
       consumes:
@@ -607,21 +736,21 @@ paths:
     post:
       consumes:
       - application/json
-      description: register new user
+      description: register user
       parameters:
       - description: Register Request
         in: body
         name: RegisterRequest
         required: true
         schema:
-          $ref: '#/definitions/user.RegisterRequest'
+          $ref: '#/definitions/authentication.RegisterRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.AuthenticatedUser'
+            $ref: '#/definitions/authentication.AuthenticatedUser'
         "400":
           description: Bad Request
           schema:
@@ -630,9 +759,42 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/exception.ErrorResponse'
-      summary: register new user
+      summary: register user
       tags:
-      - user
+      - authentication
+  /v1/token/{token}:
+    get:
+      consumes:
+      - application/json
+      description: get user by token
+      parameters:
+      - description: token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticatedUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: get user by token
+      tags:
+      - reset password
   /v1/users:
     get:
       consumes:
@@ -662,7 +824,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.AuthenticatedUser'
+            items:
+              $ref: '#/definitions/user.User'
+            type: array
         "401":
           description: Unauthorized
           schema:
@@ -700,7 +864,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.AuthenticatedUser'
+            $ref: '#/definitions/user.User'
         "400":
           description: Bad Request
           schema:
@@ -783,7 +947,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.AuthenticatedUser'
+            $ref: '#/definitions/user.User'
         "401":
           description: Unauthorized
           schema:
@@ -850,4 +1014,53 @@ paths:
       summary: update user by uuid
       tags:
       - user
+  /v1/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: verify email
+      parameters:
+      - description: Verify Email Request
+        in: body
+        name: VerifyEmailRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticatedUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: verify email
+      tags:
+      - verify email
 swagger: "2.0"
+tags:
+- description: Index handler
+  name: index
+- description: Authentication handler
+  name: authentication
+- description: Verify email handler
+  name: verify email
+- description: Reset password handler
+  name: reset password
+- description: Recaptcha handler
+  name: recaptcha
+- description: Profile handler
+  name: profile
+- description: User handler
+  name: user

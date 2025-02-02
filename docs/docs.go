@@ -15,6 +15,58 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/forgot-password": {
+            "post": {
+                "description": "forgot password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reset password"
+                ],
+                "summary": "forgot password",
+                "parameters": [
+                    {
+                        "description": "Forgot Password Request",
+                        "name": "ForgotPasswordRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authentication.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/index": {
             "get": {
                 "description": "welcome message",
@@ -144,6 +196,58 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/new-password": {
+            "post": {
+                "description": "reset password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reset password"
+                ],
+                "summary": "reset password",
+                "parameters": [
+                    {
+                        "description": "Reset Password Request",
+                        "name": "ResetPasswordRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authentication.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/exception.ErrorResponse"
                         }
@@ -586,6 +690,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/recaptcha": {
+            "post": {
+                "description": "validate captcha",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recaptcha"
+                ],
+                "summary": "validate captcha",
+                "parameters": [
+                    {
+                        "description": "Validate Captcha Request",
+                        "name": "ValidateCaptchaRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/captcha.ValidateCaptchaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "bool"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/refresh-token": {
             "post": {
                 "description": "refresh token",
@@ -638,7 +788,7 @@ const docTemplate = `{
         },
         "/v1/register": {
             "post": {
-                "description": "register new user",
+                "description": "register user",
                 "consumes": [
                     "application/json"
                 ],
@@ -646,9 +796,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "authentication"
                 ],
-                "summary": "register new user",
+                "summary": "register user",
                 "parameters": [
                     {
                         "description": "Register Request",
@@ -656,7 +806,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.RegisterRequest"
+                            "$ref": "#/definitions/authentication.RegisterRequest"
                         }
                     }
                 ],
@@ -664,11 +814,61 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.AuthenticatedUser"
+                            "$ref": "#/definitions/authentication.AuthenticatedUser"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/token/{token}": {
+            "get": {
+                "description": "get user by token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reset password"
+                ],
+                "summary": "get user by token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/exception.ErrorResponse"
                         }
@@ -726,7 +926,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.AuthenticatedUser"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/user.User"
+                            }
                         }
                     },
                     "401": {
@@ -783,7 +986,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.AuthenticatedUser"
+                            "$ref": "#/definitions/user.User"
                         }
                     },
                     "400": {
@@ -846,7 +1049,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.AuthenticatedUser"
+                            "$ref": "#/definitions/user.User"
                         }
                     },
                     "401": {
@@ -1006,9 +1209,90 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/verify-email": {
+            "post": {
+                "description": "verify email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verify email"
+                ],
+                "summary": "verify email",
+                "parameters": [
+                    {
+                        "description": "Verify Email Request",
+                        "name": "VerifyEmailRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authentication.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "authentication.AuthenticatedUser": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "imageId": {
+                    "type": "string"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/role.Role"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "authentication.AuthenticationResponse": {
             "type": "object",
             "properties": {
@@ -1022,6 +1306,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "authentication.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }
@@ -1061,6 +1356,64 @@ const docTemplate = `{
             }
         },
         "authentication.Oauth2GoogleLoginRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "authentication.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 6
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "authentication.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "token"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "authentication.VerifyEmailRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "captcha.ValidateCaptchaRequest": {
             "type": "object",
             "required": [
                 "token"
@@ -1150,35 +1503,6 @@ const docTemplate = `{
                 "USER"
             ]
         },
-        "user.AuthenticatedUser": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "imageId": {
-                    "type": "string"
-                },
-                "imageUrl": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "role": {
-                    "$ref": "#/definitions/role.Role"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
         "user.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -1208,27 +1532,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "provider": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.RegisterRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "name",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 6
-                },
-                "password": {
                     "type": "string"
                 }
             }
@@ -1293,7 +1596,37 @@ const docTemplate = `{
                 }
             }
         }
-    }
+    },
+    "tags": [
+        {
+            "description": "Index handler",
+            "name": "index"
+        },
+        {
+            "description": "Authentication handler",
+            "name": "authentication"
+        },
+        {
+            "description": "Verify email handler",
+            "name": "verify email"
+        },
+        {
+            "description": "Reset password handler",
+            "name": "reset password"
+        },
+        {
+            "description": "Recaptcha handler",
+            "name": "recaptcha"
+        },
+        {
+            "description": "Profile handler",
+            "name": "profile"
+        },
+        {
+            "description": "User handler",
+            "name": "user"
+        }
+    ]
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

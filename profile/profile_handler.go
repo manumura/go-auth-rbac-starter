@@ -13,11 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/common"
 	conf "github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/storage"
-	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -46,7 +46,6 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 // @BasePath /api
 // GetProfile godoc
 // @Summary get profile
-// @Schemes
 // @Description get profile
 // @Tags profile
 // @Accept json
@@ -59,7 +58,7 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [get]
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := authentication.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -77,7 +76,6 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 // @BasePath /api
 // UpdateProfile godoc
 // @Summary update profile
-// @Schemes
 // @Description update profile
 // @Tags profile
 // @Accept json
@@ -91,7 +89,7 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [put]
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := authentication.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -129,7 +127,6 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 // @BasePath /api
 // UpdatePassword godoc
 // @Summary update password
-// @Schemes
 // @Description update password
 // @Tags profile
 // @Accept json
@@ -143,7 +140,7 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile/password [put]
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := authentication.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -185,7 +182,6 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 // @BasePath /api
 // UpdateImage godoc
 // @Summary update image
-// @Schemes
 // @Description update image
 // @Tags profile
 // @Accept mpfd
@@ -199,7 +195,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile/image [put]
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := authentication.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -320,7 +316,6 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 // @BasePath /api
 // DeleteProfile godoc
 // @Summary delete profile
-// @Schemes
 // @Description delete profile
 // @Tags profile
 // @Accept json
@@ -334,7 +329,7 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [delete]
 func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := authentication.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return

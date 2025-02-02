@@ -118,12 +118,6 @@ func UserWithOauthProviderToUserEntity(user db.User, oauthUser db.OauthUser) Use
 	return u
 }
 
-func ToAuthenticatedUser(entity UserEntity) AuthenticatedUser {
-	authenticatedUser := AuthenticatedUser{}
-	copier.Copy(&authenticatedUser, &entity)
-	return authenticatedUser
-}
-
 func ToOauthUserProvider(entity OauthUserProviderEntity) OauthUserProvider {
 	o := OauthUserProvider{}
 	copier.Copy(&o, &entity)

@@ -46,17 +46,6 @@ type ResetPasswordTokenEntity struct {
 	ExpiresAt string `json:"expiresAt"`
 }
 
-type AuthenticatedUser struct {
-	Uuid      uuid.UUID  `json:"uuid"`
-	Name      string     `json:"name"`
-	IsActive  bool       `json:"isActive"`
-	ImageID   string     `json:"imageId"`
-	ImageUrl  string     `json:"imageUrl"`
-	Role      role.Role  `json:"role"`
-	CreatedAt *time.Time `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
-}
-
 type User struct {
 	Uuid      uuid.UUID            `json:"uuid"`
 	Name      string               `json:"name"`
@@ -74,12 +63,6 @@ type OauthUserProvider struct {
 	ExternalUserID string      `json:"externalUserId"`
 	OauthProvider  string      `json:"provider"`
 	Email          interface{} `json:"email"`
-}
-
-type RegisterRequest struct {
-	Name     string `json:"name" validate:"required,min=6,max=100"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
 }
 
 type CreateUserRequest struct {

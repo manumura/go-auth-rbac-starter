@@ -57,9 +57,9 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 			return
 		}
 
-		authenticatedUser := user.ToAuthenticatedUser(u)
+		authenticatedUser := authentication.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
-		ctx.Set(user.AuthenticatedUserKey, authenticatedUser)
+		ctx.Set(authentication.AuthenticatedUserKey, authenticatedUser)
 		ctx.Next()
 	}
 }
@@ -100,9 +100,9 @@ func RefreshAuthMiddleware(authenticationService authentication.AuthenticationSe
 			return
 		}
 
-		authenticatedUser := user.ToAuthenticatedUser(u)
+		authenticatedUser := authentication.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
-		ctx.Set(user.AuthenticatedUserKey, authenticatedUser)
+		ctx.Set(authentication.AuthenticatedUserKey, authenticatedUser)
 		ctx.Next()
 	}
 }
@@ -123,9 +123,9 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 			return
 		}
 
-		authenticatedUser := user.ToAuthenticatedUser(u)
+		authenticatedUser := authentication.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
-		ctx.Set(user.AuthenticatedUserKey, authenticatedUser)
+		ctx.Set(authentication.AuthenticatedUserKey, authenticatedUser)
 		ctx.Next()
 	}
 }

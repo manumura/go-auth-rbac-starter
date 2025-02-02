@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,6 +30,7 @@ type UserService interface {
 	DeleteByUUID(ctx context.Context, uuid string) error
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
+	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
 }
 
 type UserServiceImpl struct {
@@ -270,24 +272,7 @@ func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p
 			return err
 		}
 
-		uup := db.UpdateUserParams{}
-
-		if p.Name != nil {
-			uup.Name = sql.NullString{String: *p.Name, Valid: true}
-		}
-
-		if p.Role != nil {
-			roleId := role.RoleNameToID[p.Role.String()]
-			uup.RoleID = sql.NullInt64{Int64: int64(roleId), Valid: true}
-		}
-
-		if p.IsActive != nil {
-			active := 0
-			if *p.IsActive {
-				active = 1
-			}
-			uup.IsActive = sql.NullInt64{Int64: int64(active), Valid: true}
-		}
+		uup := getUpdateUserParams(p)
 
 		if uup.Name.Valid || uup.RoleID.Valid || uup.IsActive.Valid {
 			log.Info().Msgf("updating user with UUID %s", uuid)
@@ -301,20 +286,10 @@ func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p
 			}
 		}
 
-		uucp := db.UpdateUserCredentialsParams{}
-
-		if p.Email != nil {
-			uucp.Email = sql.NullString{String: *p.Email, Valid: true}
-		}
-
-		if p.Password != nil {
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*p.Password), bcrypt.DefaultCost)
-			if err != nil {
-				log.Error().Err(err).Msg(err.Error())
-				return err
-			}
-
-			uucp.Password = sql.NullString{String: string(hashedPassword), Valid: true}
+		uucp, err := getUpdateUserCredentialsParams(p)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return err
 		}
 
 		if uucp.Email.Valid || uucp.Password.Valid {
@@ -336,6 +311,67 @@ func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p
 	return user, err
 }
 
+func getUpdateUserParams(p UpdateUserParams) db.UpdateUserParams {
+	uup := db.UpdateUserParams{}
+
+	if p.Name != nil {
+		uup.Name = sql.NullString{String: *p.Name, Valid: true}
+	}
+
+	if p.Role != nil {
+		roleId := role.RoleNameToID[p.Role.String()]
+		uup.RoleID = sql.NullInt64{Int64: int64(roleId), Valid: true}
+	}
+
+	if p.IsActive != nil {
+		active := 0
+		if *p.IsActive {
+			active = 1
+		}
+		uup.IsActive = sql.NullInt64{Int64: int64(active), Valid: true}
+	}
+
+	return uup
+}
+
+func getUpdateUserCredentialsParams(p UpdateUserParams) (db.UpdateUserCredentialsParams, error) {
+	uucp := db.UpdateUserCredentialsParams{}
+
+	if p.Email != nil {
+		uucp.Email = sql.NullString{String: *p.Email, Valid: true}
+	}
+
+	if p.Password != nil {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*p.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return uucp, err
+		}
+
+		uucp.Password = sql.NullString{String: string(hashedPassword), Valid: true}
+	}
+
+	return uucp, nil
+}
+
 func (service *UserServiceImpl) DeleteByUUID(ctx context.Context, uuid string) error {
 	return service.datastore.DeleteUser(ctx, uuid)
+}
+
+func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error) {
+	u, err := service.GetByEmail(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, err
+	}
+
+	if u.Uuid == userUUID {
+		log.Info().Msgf("email %s belongs to the same user", email)
+		return false, nil
+	}
+
+	if u.Uuid != uuid.Nil {
+		log.Error().Msgf("email %s already exists", email)
+		return true, nil
+	}
+
+	return false, nil
 }

@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
-	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,6 +30,19 @@ func NewResetPasswordHandler(service ResetPasswordService, emailService message.
 	}
 }
 
+// @BasePath /api
+// ForgotPassword godoc
+// @Summary forgot password
+// @Description forgot password
+// @Tags reset password
+// @Accept json
+// @Produce json
+// @Param ForgotPasswordRequest body ForgotPasswordRequest true "Forgot Password Request"
+// @Success 200 {object} common.MessageResponse
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/forgot-password [post]
 func (h *ResetPasswordHandler) ForgotPassword(ctx *gin.Context) {
 	log.Info().Msg("forgot password for user with email")
 	var req ForgotPasswordRequest
@@ -61,11 +74,22 @@ func (h *ResetPasswordHandler) ForgotPassword(ctx *gin.Context) {
 	log.Info().Msgf("[EMAIL][RESET_PWD] sending email to USER: %s", req.Email)
 	go h.EmailService.SendResetPasswordEmail(req.Email, "", t.Token)
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "success",
-	})
+	ctx.JSON(http.StatusOK, common.MessageResponse{Message: "Reset password email sent"})
 }
 
+// @BasePath /api
+// GetUserByToken godoc
+// @Summary get user by token
+// @Description get user by token
+// @Tags reset password
+// @Accept json
+// @Produce json
+// @Param token path string true "token"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/token/{token} [get]
 func (h *ResetPasswordHandler) GetUserByToken(ctx *gin.Context) {
 	tokenAsString := ctx.Param("token")
 	log.Info().Msgf("get user by token %s", tokenAsString)
@@ -88,10 +112,23 @@ func (h *ResetPasswordHandler) GetUserByToken(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(u)
+	authenticatedUser := ToAuthenticatedUser(u)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
+// @BasePath /api
+// ResetPassword godoc
+// @Summary reset password
+// @Description reset password
+// @Tags reset password
+// @Accept json
+// @Produce json
+// @Param ResetPasswordRequest body ResetPasswordRequest true "Reset Password Request"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/new-password [post]
 func (h *ResetPasswordHandler) ResetPassword(ctx *gin.Context) {
 	log.Info().Msg("reset password for user with token")
 	var req ResetPasswordRequest
@@ -125,7 +162,7 @@ func (h *ResetPasswordHandler) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(u)
+	authenticatedUser := ToAuthenticatedUser(u)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 

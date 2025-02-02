@@ -35,9 +35,21 @@ type GoogleRecaptchaResponse struct {
 	Success            bool      `json:"success"`
 }
 
+// @BasePath /api
+// ValidateCaptcha godoc
+// @Summary validate captcha
+// @Description validate captcha
+// @Tags recaptcha
+// @Accept json
+// @Produce json
+// @Param ValidateCaptchaRequest body ValidateCaptchaRequest true "Validate Captcha Request"
+// @Success 200 {bool} success
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/recaptcha [post]
 func (h *CaptchaHandler) ValidateCaptcha(ctx *gin.Context) {
 	log.Info().Msg("validate captcha")
-	var req CaptchaRequest
+	var req ValidateCaptchaRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return

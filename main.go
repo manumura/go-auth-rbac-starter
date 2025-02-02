@@ -25,7 +25,21 @@ var interruptSignals = []os.Signal{
 	syscall.SIGINT,
 }
 
-// TODO swagger https://github.com/swaggo/gin-swagger https://lemoncode21.medium.com/how-to-add-swagger-in-golang-gin-6932e8076ec0
+// https://github.com/swaggo/swag
+// @tag.name index
+// @tag.description Index handler
+// @tag.name authentication
+// @tag.description Authentication handler
+// @tag.name verify email
+// @tag.description Verify email handler
+// @tag.name reset password
+// @tag.description Reset password handler
+// @tag.name recaptcha
+// @tag.description Recaptcha handler
+// @tag.name profile
+// @tag.description Profile handler
+// @tag.name user
+// @tag.description User handler
 func main() {
 	ctx := context.Background()
 	if err := run(ctx, os.Args, os.Stdin, os.Stdout, os.Stderr); err != nil {
@@ -33,6 +47,7 @@ func main() {
 	}
 }
 
+// TODO Dockerize the application
 // https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), interruptSignals...)

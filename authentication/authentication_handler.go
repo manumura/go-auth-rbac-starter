@@ -10,9 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/cookie"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/message"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/user"
@@ -22,6 +24,7 @@ import (
 type AuthenticationHandler struct {
 	user.UserService
 	AuthenticationService
+	message.EmailService
 	config.Config
 	*validator.Validate
 }
@@ -34,19 +37,83 @@ type authenticationToken struct {
 	RefreshTokenExpiresAt time.Time
 }
 
-func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, config config.Config, validate *validator.Validate) AuthenticationHandler {
+func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, emailService message.EmailService, config config.Config, validate *validator.Validate) AuthenticationHandler {
 	return AuthenticationHandler{
 		userService,
 		authenticationService,
+		emailService,
 		config,
 		validate,
 	}
 }
 
 // @BasePath /api
+// Register godoc
+// @Summary register user
+// @Description register user
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param RegisterRequest body RegisterRequest true "Register Request"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/register [post]
+func (h *AuthenticationHandler) Register(ctx *gin.Context) {
+	var req RegisterRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		log.Error().Err(err).Msg("validation error")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	isEmailExist, err := h.IsEmailExist(ctx, req.Email, uuid.Nil)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+	if isEmailExist {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+		return
+	}
+
+	user, err := h.Create(ctx, user.CreateUserParams{
+		Name:            req.Name,
+		Email:           req.Email,
+		Password:        req.Password,
+		Role:            role.USER,
+		IsEmailVerified: false,
+	})
+
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	authenticatedUser := ToAuthenticatedUser(user)
+
+	// Send email with link to verify email
+	go h.EmailService.SendRegistrationEmail(user.UserCredentials.Email, "", user.VerifyEmailToken.Token)
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("failed to send email")
+	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+	// 	return
+	// }
+
+	// Send new user email to root user
+	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", user.UserCredentials.Email)
+
+	ctx.JSON(http.StatusOK, authenticatedUser)
+}
+
+// @BasePath /api
 // Login godoc
 // @Summary login
-// @Schemes
 // @Description login
 // @Tags authentication
 // @Accept json
@@ -110,7 +177,6 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 // @BasePath /api
 // RefreshToken godoc
 // @Summary refresh token
-// @Schemes
 // @Description refresh token
 // @Tags authentication
 // @Accept json
@@ -122,7 +188,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/refresh-token [post]
 func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
-	authenticatedUser, err := user.GetUserFromContext(ctx)
+	authenticatedUser, err := GetUserFromContext(ctx)
 	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
@@ -154,7 +220,6 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 // @BasePath /api
 // Logout godoc
 // @Summary logout
-// @Schemes
 // @Description logout
 // @Tags authentication
 // @Accept json
@@ -166,7 +231,7 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/logout [post]
 func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
-	authenticatedUser, err := user.GetUserFromContext(ctx)
+	authenticatedUser, err := GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -192,7 +257,6 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 // @BasePath /api
 // Oauth2FacebookLogin godoc
 // @Summary facebook login
-// @Schemes
 // @Description facebook login
 // @Tags authentication
 // @Accept json
@@ -242,7 +306,6 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 // @BasePath /api
 // Oauth2GoogleLogin godoc
 // @Summary google login
-// @Schemes
 // @Description google login
 // @Tags authentication
 // @Accept json
@@ -300,13 +363,13 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
-func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
+func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, AuthenticatedUser, error) {
 	var u user.UserEntity
 	u, err := h.GetByOauthProvider(ctx, p, id)
 	// Error is other than user not found
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		// ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
-		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrLogin
+		return AuthenticationResponse{}, AuthenticatedUser{}, exception.ErrLogin
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -321,21 +384,21 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 
 		if err != nil {
 			// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
-			return AuthenticationResponse{}, user.AuthenticatedUser{}, err
+			return AuthenticationResponse{}, AuthenticatedUser{}, err
 		}
 	}
 
 	return h.createAuthenticationTokens(u, ctx)
 }
 
-func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
-	authenticatedUser := user.ToAuthenticatedUser(u)
+func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, AuthenticatedUser, error) {
+	authenticatedUser := ToAuthenticatedUser(u)
 
 	t, err := h.generateTokens(authenticatedUser)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate authentication tokens")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	// Save the tokens in the database
@@ -350,7 +413,7 @@ func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ct
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save authentication token")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	authResponse := AuthenticationResponse{
@@ -364,7 +427,7 @@ func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ct
 }
 
 // TODO encrypt SHA256 ?
-func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {
+func (h *AuthenticationHandler) generateTokens(authenticatedUser AuthenticatedUser) (authenticationToken, error) {
 	now := time.Now().UTC()
 	accessTokenAsString, accessTokenExpiresAt, err := generateToken(now, h.AccessTokenExpiresInAsSeconds)
 	if err != nil {

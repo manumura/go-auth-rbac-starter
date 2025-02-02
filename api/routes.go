@@ -35,7 +35,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	emailService := message.NewEmailService(config)
 
 	userHandler := user.NewUserHandler(userService, emailService, config, validate)
-	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, config, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, emailService, config, validate)
 	verifyEmailHandler := authentication.NewVerifyEmailHandler(verifyEmailService, config, validate)
 	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)
@@ -50,7 +50,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup := router.Group(prefix)
 	publicRouterGroup.GET("/v1/index", server.index)
 	publicRouterGroup.GET("/v1/info", server.info)
-	publicRouterGroup.POST("/v1/register", userHandler.Register)
+	publicRouterGroup.POST("/v1/register", authenticationHandler.Register)
 	publicRouterGroup.POST("/v1/login", authenticationHandler.Login)
 	publicRouterGroup.POST("/v1/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
 	publicRouterGroup.POST("/v1/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
@@ -80,8 +80,10 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
 	adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
 
-	docs.SwaggerInfo.BasePath = prefix
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	if config.Environment != "prod" {
+		docs.SwaggerInfo.BasePath = prefix
+		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	}
 
 	return router
 }

@@ -1,6 +1,6 @@
 package captcha
 
 // Uses https://github.com/go-playground/validator for validation
-type CaptchaRequest struct {
+type ValidateCaptchaRequest struct {
 	Token string `json:"token" validate:"required"`
 }

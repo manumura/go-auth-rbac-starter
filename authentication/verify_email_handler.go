@@ -8,7 +8,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
-	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -26,6 +25,19 @@ func NewVerifyEmailHandler(service VerifyEmailService, config config.Config, val
 	}
 }
 
+// @BasePath /api
+// VerifyEmail godoc
+// @Summary verify email
+// @Description verify email
+// @Tags verify email
+// @Accept json
+// @Produce json
+// @Param VerifyEmailRequest body VerifyEmailRequest true "Verify Email Request"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/verify-email [post]
 func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 	log.Info().Msg("update user is email verified by token")
 	var req VerifyEmailRequest
@@ -70,6 +82,6 @@ func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(u)
+	authenticatedUser := ToAuthenticatedUser(u)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }

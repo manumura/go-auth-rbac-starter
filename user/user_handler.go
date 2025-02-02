@@ -1,8 +1,6 @@
 package user
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -34,83 +32,16 @@ func NewUserHandler(service UserService, emailService message.EmailService, conf
 	}
 }
 
-// TODO move to auth handler
-// @BasePath /api
-// Register godoc
-// @Summary register new user
-// @Schemes
-// @Description register new user
-// @Tags user
-// @Accept json
-// @Produce json
-// @Param RegisterRequest body RegisterRequest true "Register Request"
-// @Success 200 {object} AuthenticatedUser
-// @Failure 400 {object} exception.ErrorResponse
-// @Failure 500 {object} exception.ErrorResponse
-// @Router /v1/register [post]
-func (h *UserHandler) Register(ctx *gin.Context) {
-	var req RegisterRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
-		return
-	}
-
-	if err := h.Validate.Struct(req); err != nil {
-		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
-		return
-	}
-
-	isEmailExist, err := h.isEmailExist(ctx, req.Email, uuid.Nil)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
-		return
-	}
-	if isEmailExist {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
-		return
-	}
-
-	user, err := h.Create(ctx, CreateUserParams{
-		Name:            req.Name,
-		Email:           req.Email,
-		Password:        req.Password,
-		Role:            role.USER,
-		IsEmailVerified: false,
-	})
-
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
-		return
-	}
-
-	authenticatedUser := ToAuthenticatedUser(user)
-
-	// Send email with link to verify email
-	go h.EmailService.SendRegistrationEmail(user.UserCredentials.Email, "", user.VerifyEmailToken.Token)
-	// if err != nil {
-	// 	log.Error().Err(err).Msg("failed to send email")
-	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-	// 	return
-	// }
-
-	// Send new user email to root user
-	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", user.UserCredentials.Email)
-
-	ctx.JSON(http.StatusOK, authenticatedUser)
-}
-
 // @BasePath /api
 // CreateUser godoc
 // @Summary create new user
-// @Schemes
 // @Description create new user
 // @Tags user
 // @Accept json
 // @Produce json
 // @Param CreateUserRequest body CreateUserRequest true "Create User Request"
 // @Param Authorization header string true "Bearer token"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {object} User
 // @Failure 400 {object} exception.ErrorResponse
 // @Failure 401 {object} exception.ErrorResponse
 // @Failure 403 {object} exception.ErrorResponse
@@ -129,7 +60,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	isEmailExist, err := h.isEmailExist(ctx, req.Email, uuid.Nil)
+	isEmailExist, err := h.IsEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
@@ -155,18 +86,17 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := ToAuthenticatedUser(user)
+	u := ToUser(user)
 
 	// Send email with generated password
 	go h.EmailService.SendTemporaryPasswordEmail(user.UserCredentials.Email, "", generatedPassword)
 
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	ctx.JSON(http.StatusOK, u)
 }
 
 // @BasePath /api
 // GetAllUsers godoc
 // @Summary get all users
-// @Schemes
 // @Description get all users
 // @Tags user
 // @Accept json
@@ -175,7 +105,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 // @Param page query string false "Page"
 // @Param pageSize query string false "Page size"
 // @Param Authorization header string true "Bearer token"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {array} User
 // @Failure 401 {object} exception.ErrorResponse
 // @Failure 403 {object} exception.ErrorResponse
 // @Failure 500 {object} exception.ErrorResponse
@@ -242,14 +172,13 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 // @BasePath /api
 // GetUser godoc
 // @Summary get user by uuid
-// @Schemes
 // @Description get user by uuid
 // @Tags user
 // @Accept json
 // @Produce json
 // @Param uuid path string true "User UUID"
 // @Param Authorization header string true "Bearer token"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {object} User
 // @Failure 401 {object} exception.ErrorResponse
 // @Failure 403 {object} exception.ErrorResponse
 // @Failure 404 {object} exception.ErrorResponse
@@ -278,7 +207,6 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 // @BasePath /api
 // UpdateUser godoc
 // @Summary update user by uuid
-// @Schemes
 // @Description update user by uuid
 // @Tags user
 // @Accept json
@@ -317,7 +245,7 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	if req.Email != nil {
-		isEmailExist, err := h.isEmailExist(ctx, *req.Email, userUUID)
+		isEmailExist, err := h.IsEmailExist(ctx, *req.Email, userUUID)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 			return
@@ -347,7 +275,6 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 // @BasePath /api
 // DeleteUser godoc
 // @Summary delete user by uuid
-// @Schemes
 // @Description delete user by uuid
 // @Tags user
 // @Accept json
@@ -384,23 +311,4 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 
 	user := ToUser(u)
 	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *UserHandler) isEmailExist(ctx *gin.Context, email string, userUUID uuid.UUID) (bool, error) {
-	u, err := h.GetByEmail(ctx, email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, err
-	}
-
-	if u.Uuid == userUUID {
-		log.Info().Msgf("email %s belongs to the same user", email)
-		return false, nil
-	}
-
-	if u.Uuid != uuid.Nil {
-		log.Error().Msgf("email %s already exists", email)
-		return true, nil
-	}
-
-	return false, nil
 }

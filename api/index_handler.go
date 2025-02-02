@@ -13,7 +13,6 @@ import (
 // @BasePath /api
 // Welcome godoc
 // @Summary welcome message
-// @Schemes
 // @Description welcome message
 // @Tags index
 // @Accept json
@@ -28,7 +27,6 @@ func (server *HttpServer) index(ctx *gin.Context) {
 // @BasePath /api
 // Info godoc
 // @Summary get app info
-// @Schemes
 // @Description get app info
 // @Tags index
 // @Accept json
