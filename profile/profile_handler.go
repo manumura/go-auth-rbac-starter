@@ -43,14 +43,14 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	log.Info().Msgf("get profile for user UUID %s", u.Uuid)
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -59,14 +59,14 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	log.Info().Msgf("update profile for user UUID %s", u.Uuid)
 	var req UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -74,19 +74,19 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 	err = h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	_, err = h.UpdateProfileByUserUuid(ctx, u.Uuid, UpdateProfileParams(req))
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -95,14 +95,14 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	log.Info().Msgf("update password for user UUID %s", u.Uuid)
 	var req UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -110,7 +110,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 	err = h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -120,13 +120,13 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 		if err == exception.ErrNotFound || err == exception.ErrInvalidRequest {
 			statusCode = http.StatusBadRequest
 		}
-		ctx.AbortWithStatusJSON(statusCode, exception.ErrorResponse(err, statusCode))
+		ctx.AbortWithStatusJSON(statusCode, exception.GetErrorResponse(err, statusCode))
 		return
 	}
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -135,20 +135,20 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	log.Info().Msgf("update image for user UUID %s", u.Uuid)
 	file, err := ctx.FormFile("image")
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	filename, err := getFileName(file, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -158,14 +158,14 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	f, err := file.Open()
 	if err != nil {
 		log.Error().Err(err).Msg("error opening file")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	client, err := h.StorageService.GetS3Client(ctx, h.Config.AwsRegion)
 	if err != nil {
 		log.Error().Err(err).Msg("error loading config")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -174,7 +174,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		err = h.StorageService.DeleteObject(ctx, client, h.Config.AwsS3Bucket, u.ImageID)
 		if err != nil {
 			log.Error().Err(err).Msg("error deleting old image")
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 			return
 		}
 	}
@@ -183,7 +183,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	res, err := h.StorageService.UploadObject(ctx, client, h.Config.AwsS3Bucket, S3Dir+"/"+filename, f, file.Header.Get("Content-Type"))
 	if err != nil {
 		log.Error().Err(err).Msg("error uploading file")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -198,7 +198,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	}
 	_, err = h.UpdateImageByUserUuid(ctx, u.Uuid, p)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -208,7 +208,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -254,20 +254,20 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	log.Info().Msgf("delete profile for user UUID %s", u.Uuid)
 	_, err = h.DeleteProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)

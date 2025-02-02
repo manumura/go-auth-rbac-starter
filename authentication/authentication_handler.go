@@ -46,7 +46,7 @@ func NewAuthenticationHandler(userService user.UserService, authenticationServic
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -54,32 +54,32 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByEmail(ctx, req.Email)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
 	if !u.IsActive {
 		log.Error().Msg("user is not active")
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
 	// Comparing the password with the hash
 	err = h.CheckPassword(req.Password, u.UserCredentials.Password)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
 
 	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -97,19 +97,19 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 	authenticatedUser, err := user.GetUserFromContext(ctx)
 	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, authenticatedUser.Uuid.String())
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(exception.ErrNotFound, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
 		return
 	}
 
 	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -126,19 +126,19 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 	authenticatedUser, err := user.GetUserFromContext(ctx)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, authenticatedUser.Uuid.String())
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(exception.ErrNotFound, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
 		return
 	}
 
 	err = h.DeleteAuthenticationTokenByUserID(ctx, u.ID)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
 
@@ -150,7 +150,7 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	var req Oauth2FacebookLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("invalid request")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 		if err == exception.ErrLogin {
 			statusCode = http.StatusUnauthorized
 		}
-		ctx.AbortWithStatusJSON(statusCode, exception.ErrorResponse(err, statusCode))
+		ctx.AbortWithStatusJSON(statusCode, exception.GetErrorResponse(err, statusCode))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	var req Oauth2GoogleLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -193,14 +193,14 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	tokenPayload, err := verifyGoogleToken(req.Token, h.Config.GoogleClientId)
 	if err != nil {
 		log.Error().Err(err).Msg("invalid token")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -214,7 +214,7 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 		if err == exception.ErrLogin {
 			statusCode = http.StatusUnauthorized
 		}
-		ctx.AbortWithStatusJSON(statusCode, exception.ErrorResponse(err, statusCode))
+		ctx.AbortWithStatusJSON(statusCode, exception.GetErrorResponse(err, statusCode))
 		return
 	}
 

@@ -25,7 +25,7 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 	return func(ctx *gin.Context) {
 		a, err := getAuthenticationFromAccessToken(ctx, authenticationService)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -33,27 +33,27 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 		accessTokenExpiresAt, err := time.Parse(time.DateTime, a.AccessTokenExpiresAt)
 		if err != nil {
 			log.Error().Err(err).Msg("error parsing access token expiry time")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
 		now := time.Now().UTC()
 		if accessTokenExpiresAt.Before(now) {
 			log.Error().Msg("access token expired")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
 		if !u.IsActive {
 			log.Error().Msg("user is not active")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -68,7 +68,7 @@ func RefreshAuthMiddleware(authenticationService authentication.AuthenticationSe
 	return func(ctx *gin.Context) {
 		a, err := getAuthenticationFromRefreshToken(ctx, authenticationService)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -76,27 +76,27 @@ func RefreshAuthMiddleware(authenticationService authentication.AuthenticationSe
 		refreshTokenExpiresAt, err := time.Parse(time.DateTime, a.RefreshTokenExpiresAt)
 		if err != nil {
 			log.Error().Err(err).Msg("error parsing refresh token expiry time")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
 			return
 		}
 
 		now := time.Now().UTC()
 		if refreshTokenExpiresAt.Before(now) {
 			log.Error().Msg("refresh token expired")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
 			return
 		}
 
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidRefreshToken, http.StatusUnauthorized))
 			return
 		}
 
 		if !u.IsActive {
 			log.Error().Msg("user is not active")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -111,7 +111,7 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 	return func(ctx *gin.Context) {
 		a, err := getAuthenticationFromAccessToken(ctx, authenticationService)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 
@@ -119,7 +119,7 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 		u, err := userService.GetByID(ctx, a.UserID)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting user from DB")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrorInvalidAccessToken, http.StatusUnauthorized))
 			return
 		}
 

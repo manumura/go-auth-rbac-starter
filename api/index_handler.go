@@ -10,19 +10,48 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (server *HttpServer) index(ctx *gin.Context) {
-	msg := fmt.Sprintf("Welcome to Go starter ^^! %s", os.Getenv(common.ENVIRONMENT))
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": msg,
-	})
+type MessageResponse struct {
+	Message string `json:"message"`
 }
 
+type InfoResponse struct {
+	Env       string `json:"env"`
+	Hostname  string `json:"hostname"`
+	IP        string `json:"ip"`
+	UserAgent string `json:"userAgent"`
+}
+
+// @BasePath /api
+// Welcome godoc
+// @Summary welcome message
+// @Schemes
+// @Description welcome message
+// @Tags index
+// @Accept json
+// @Produce json
+// @Success 200 {object} MessageResponse
+// @Router /v1/index [get]
+func (server *HttpServer) index(ctx *gin.Context) {
+	msg := fmt.Sprintf("Welcome to Go starter ^^! %s", os.Getenv(common.ENVIRONMENT))
+	ctx.JSON(http.StatusOK, MessageResponse{Message: msg})
+}
+
+// @BasePath /api
+// Info godoc
+// @Summary get app info
+// @Schemes
+// @Description get app info
+// @Tags index
+// @Accept json
+// @Produce json
+// @Success 200 {object} InfoResponse
+// @Router /v1/info [get]
 func (server *HttpServer) info(ctx *gin.Context) {
 	log.Info().Msgf("info API, user agent detected: %s, hostname: %s", ctx.Request.UserAgent(), ctx.Request.Host)
-	ctx.JSON(http.StatusOK, gin.H{
-		"env":       os.Getenv(common.ENVIRONMENT),
-		"hostname":  ctx.Request.Host,
-		"ip":        ctx.ClientIP(),
-		"userAgent": ctx.Request.UserAgent(),
+	ctx.JSON(http.StatusOK, InfoResponse{
+		Env:       os.Getenv(common.ENVIRONMENT),
+		Hostname:  ctx.Request.Host,
+		IP:        ctx.ClientIP(),
+		UserAgent: ctx.Request.UserAgent(),
 	})
 }

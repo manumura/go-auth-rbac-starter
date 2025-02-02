@@ -34,27 +34,27 @@ func (h *ResetPasswordHandler) ForgotPassword(ctx *gin.Context) {
 	log.Info().Msg("forgot password for user with email")
 	var req ForgotPasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
 	// returns nil or ValidationErrors ( []FieldError )
 	if err := h.Validate.Struct(req); err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	log.Info().Msgf("find user by email: %s", req.Email)
 	u, err := h.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
 	t, err := h.CreateResetPasswordToken(ctx, u.ID)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -72,19 +72,19 @@ func (h *ResetPasswordHandler) GetUserByToken(ctx *gin.Context) {
 
 	_, err := uuid.Parse(tokenAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetUserByResetPasswordToken(ctx, tokenAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
 	_, err = h.isTokenValid(u.ResetPasswordToken.ExpiresAt)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -96,32 +96,32 @@ func (h *ResetPasswordHandler) ResetPassword(ctx *gin.Context) {
 	log.Info().Msg("reset password for user with token")
 	var req ResetPasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
 	_, err := uuid.Parse(req.Token)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	log.Info().Msgf("get user by token %s", req.Token)
 	u, err := h.GetUserByResetPasswordToken(ctx, req.Token)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
 	_, err = h.isTokenValid(u.ResetPasswordToken.ExpiresAt)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	err = h.UpdatePassword(ctx, u.ID, req.Password)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 

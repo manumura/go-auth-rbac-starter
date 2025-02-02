@@ -15,6 +15,10 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/storage"
 	"github.com/manumura/go-auth-rbac-starter/user"
+
+	docs "github.com/manumura/go-auth-rbac-starter/docs"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const (
@@ -75,6 +79,9 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	adminRoutes.GET("/v1/users/:uuid", userHandler.GetUser)
 	adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
 	adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
+
+	docs.SwaggerInfo.BasePath = prefix
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	return router
 }

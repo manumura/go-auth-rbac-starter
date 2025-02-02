@@ -1,0 +1,412 @@
+definitions:
+  api.InfoResponse:
+    properties:
+      env:
+        type: string
+      hostname:
+        type: string
+      ip:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  api.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  exception.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      statusCode:
+        type: integer
+    type: object
+  role.Role:
+    enum:
+    - ADMIN
+    - USER
+    type: string
+    x-enum-varnames:
+    - ADMIN
+    - USER
+  user.AuthenticatedUser:
+    properties:
+      createdAt:
+        type: string
+      imageId:
+        type: string
+      imageUrl:
+        type: string
+      isActive:
+        type: boolean
+      name:
+        type: string
+      role:
+        $ref: '#/definitions/role.Role'
+      updatedAt:
+        type: string
+      uuid:
+        type: string
+    type: object
+  user.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 6
+        type: string
+      role:
+        $ref: '#/definitions/role.Role'
+    required:
+    - email
+    - name
+    - role
+    type: object
+  user.OauthUserProvider:
+    properties:
+      email: {}
+      externalUserId:
+        type: string
+      provider:
+        type: string
+    type: object
+  user.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 6
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  user.UpdateUserRequest:
+    properties:
+      active:
+        type: boolean
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 6
+        type: string
+      password:
+        type: string
+      role:
+        $ref: '#/definitions/role.Role'
+    type: object
+  user.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      imageId:
+        type: string
+      imageUrl:
+        type: string
+      isActive:
+        type: boolean
+      name:
+        type: string
+      providers:
+        items:
+          $ref: '#/definitions/user.OauthUserProvider'
+        type: array
+      role:
+        $ref: '#/definitions/role.Role'
+      updatedAt:
+        type: string
+      uuid:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /v1/index:
+    get:
+      consumes:
+      - application/json
+      description: welcome message
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+      summary: welcome message
+      tags:
+      - index
+  /v1/info:
+    get:
+      consumes:
+      - application/json
+      description: get app info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.InfoResponse'
+      summary: get app info
+      tags:
+      - index
+  /v1/register:
+    post:
+      consumes:
+      - application/json
+      description: register new user
+      parameters:
+      - description: Register Request
+        in: body
+        name: RegisterRequest
+        required: true
+        schema:
+          $ref: '#/definitions/user.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.AuthenticatedUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: register new user
+      tags:
+      - user
+  /v1/users:
+    get:
+      consumes:
+      - application/json
+      description: get all users
+      parameters:
+      - description: Role
+        in: query
+        name: role
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: string
+      - description: Page size
+        in: query
+        name: pageSize
+        type: string
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.AuthenticatedUser'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: get all users
+      tags:
+      - user
+    post:
+      consumes:
+      - application/json
+      description: create new user
+      parameters:
+      - description: Create User Request
+        in: body
+        name: CreateUserRequest
+        required: true
+        schema:
+          $ref: '#/definitions/user.CreateUserRequest'
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.AuthenticatedUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: create new user
+      tags:
+      - user
+  /v1/users/{uuid}:
+    delete:
+      consumes:
+      - application/json
+      description: delete user
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: delete user
+      tags:
+      - user
+    get:
+      consumes:
+      - application/json
+      description: get user by uuid
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.AuthenticatedUser'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: get user by uuid
+      tags:
+      - user
+    put:
+      consumes:
+      - application/json
+      description: update user
+      parameters:
+      - description: Update User Request
+        in: body
+        name: UpdateUserRequest
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserRequest'
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: update user
+      tags:
+      - user
+swagger: "2.0"

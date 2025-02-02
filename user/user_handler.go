@@ -34,26 +34,39 @@ func NewUserHandler(service UserService, emailService message.EmailService, conf
 	}
 }
 
+// @BasePath /api
+// Register godoc
+// @Summary register new user
+// @Schemes
+// @Description register new user
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param RegisterRequest body RegisterRequest true "Register Request"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/register [post]
 func (h *UserHandler) Register(ctx *gin.Context) {
 	var req RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	isEmailExist, err := h.isEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 	if isEmailExist {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 		return
 	}
 
@@ -66,7 +79,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -86,26 +99,42 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
+// @BasePath /api
+// CreateUser godoc
+// @Summary create new user
+// @Schemes
+// @Description create new user
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param CreateUserRequest body CreateUserRequest true "Create User Request"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/users [post]
 func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	isEmailExist, err := h.isEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 	if isEmailExist {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 		return
 	}
 
@@ -121,7 +150,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -133,6 +162,23 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
+// @BasePath /api
+// CreateUser godoc
+// @Summary get all users
+// @Schemes
+// @Description get all users
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param role query string false "Role"
+// @Param page query string false "Page"
+// @Param pageSize query string false "Page size"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/users [get]
 func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	r := role.Role(ctx.Query("role"))
 	page, err := strconv.Atoi(ctx.Query("page"))
@@ -154,7 +200,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	err = h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -169,7 +215,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 
 	u, err := h.GetAll(ctx, p)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -179,7 +225,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	}
 	c, err := h.CountAll(ctx, cp)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -192,19 +238,35 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 }
 
 // TODO handle multiple providers
+// @BasePath /api
+// CreateUser godoc
+// @Summary get user by uuid
+// @Schemes
+// @Description get user by uuid
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param uuid path string true "User UUID"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthenticatedUser
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/users/{uuid} [get]
 func (h *UserHandler) GetUser(ctx *gin.Context) {
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("get user by uuid %s", userUuidAsString)
 
 	_, err := uuid.Parse(userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
@@ -212,19 +274,36 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @BasePath /api
+// UpdateUser godoc
+// @Summary update user by uuid
+// @Schemes
+// @Description update user by uuid
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param UpdateUserRequest body UpdateUserRequest true "Update User Request"
+// @Param uuid path string true "User UUID"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} User
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/users/{uuid} [put]
 func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("update user by uuid %s", userUuidAsString)
 
 	userUUID, err := uuid.Parse(userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	var req UpdateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
@@ -232,31 +311,31 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	err = h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	if req.Email != nil {
 		isEmailExist, err := h.isEmailExist(ctx, *req.Email, userUUID)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 			return
 		}
 		if isEmailExist {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 			return
 		}
 	}
 
 	_, err = h.UpdateByUUID(ctx, userUuidAsString, UpdateUserParams(req))
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
@@ -264,25 +343,41 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @BasePath /api
+// DeleteUser godoc
+// @Summary delete user by uuid
+// @Schemes
+// @Description delete user by uuid
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param uuid path string true "User UUID"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} User
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/users/{uuid} [delete]
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("delete user by uuid %s", userUuidAsString)
 
 	_, err := uuid.Parse(userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.ErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
 	err = h.DeleteByUUID(ctx, userUuidAsString)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 

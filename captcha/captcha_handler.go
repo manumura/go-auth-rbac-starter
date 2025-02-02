@@ -39,14 +39,14 @@ func (h *CaptchaHandler) ValidateCaptcha(ctx *gin.Context) {
 	log.Info().Msg("validate captcha")
 	var req CaptchaRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
 	// returns nil or ValidationErrors ( []FieldError )
 	if err := h.Validate.Struct(req); err != nil {
 		log.Error().Err(err).Msg("validation error")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.ErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *CaptchaHandler) ValidateCaptcha(ctx *gin.Context) {
 	resp, err := http.Post(url, "application/x-www-form-urlencoded", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("error validating captcha")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *CaptchaHandler) ValidateCaptcha(ctx *gin.Context) {
 	err = json.NewDecoder(resp.Body).Decode(&r)
 	if err != nil {
 		log.Error().Err(err).Msg("error parsing reCAPTCHA V3 JSON response")
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 

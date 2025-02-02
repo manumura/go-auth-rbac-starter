@@ -14,19 +14,19 @@ func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		val, exists := ctx.Get(user.AuthenticatedUserKey)
 		if !exists {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.GetErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 
 		u, ok := val.(user.AuthenticatedUser)
 		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.GetErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 
 		ok = slices.Contains(roles, u.Role)
 		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.ErrorResponse(exception.ErrForbidden, http.StatusForbidden))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.GetErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 

@@ -3,8 +3,6 @@ package exception
 import (
 	"errors"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -23,10 +21,16 @@ var (
 	ErrTokenExpired          = errors.New("token expired")
 )
 
-func ErrorResponse(err error, statusCode int) gin.H {
-	return gin.H{
-		"message":    err.Error(),
-		"error":      http.StatusText(statusCode),
-		"statusCode": statusCode,
+type ErrorResponse struct {
+	Message    string `json:"message"`
+	Error      string `json:"error"`
+	StatusCode int    `json:"statusCode"`
+}
+
+func GetErrorResponse(err error, statusCode int) ErrorResponse {
+	return ErrorResponse{
+		Message:    err.Error(),
+		Error:      http.StatusText(statusCode),
+		StatusCode: statusCode,
 	}
 }
