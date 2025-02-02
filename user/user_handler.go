@@ -34,6 +34,7 @@ func NewUserHandler(service UserService, emailService message.EmailService, conf
 	}
 }
 
+// TODO move to auth handler
 // @BasePath /api
 // Register godoc
 // @Summary register new user
