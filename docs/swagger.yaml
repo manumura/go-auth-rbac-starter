@@ -1,5 +1,46 @@
 definitions:
-  api.InfoResponse:
+  authentication.AuthenticationResponse:
+    properties:
+      accessToken:
+        type: string
+      accessTokenExpiresAt:
+        type: string
+      idToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  authentication.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  authentication.Oauth2FacebookLoginRequest:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    required:
+    - email
+    - id
+    - name
+    type: object
+  authentication.Oauth2GoogleLoginRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  common.InfoResponse:
     properties:
       env:
         type: string
@@ -10,7 +51,7 @@ definitions:
       userAgent:
         type: string
     type: object
-  api.MessageResponse:
+  common.MessageResponse:
     properties:
       message:
         type: string
@@ -23,6 +64,26 @@ definitions:
         type: string
       statusCode:
         type: integer
+    type: object
+  profile.UpdatePasswordRequest:
+    properties:
+      newPassword:
+        minLength: 8
+        type: string
+      oldPassword:
+        minLength: 8
+        type: string
+    required:
+    - newPassword
+    - oldPassword
+    type: object
+  profile.UpdateProfileRequest:
+    properties:
+      name:
+        maxLength: 100
+        type: string
+    required:
+    - name
     type: object
   role.Role:
     enum:
@@ -143,7 +204,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.MessageResponse'
+            $ref: '#/definitions/common.MessageResponse'
       summary: welcome message
       tags:
       - index
@@ -158,10 +219,390 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.InfoResponse'
+            $ref: '#/definitions/common.InfoResponse'
       summary: get app info
       tags:
       - index
+  /v1/login:
+    post:
+      consumes:
+      - application/json
+      description: login
+      parameters:
+      - description: Login Request
+        in: body
+        name: LoginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: login
+      tags:
+      - authentication
+  /v1/logout:
+    post:
+      consumes:
+      - application/json
+      description: logout
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: logout
+      tags:
+      - authentication
+  /v1/oauth2/facebook:
+    post:
+      consumes:
+      - application/json
+      description: facebook login
+      parameters:
+      - description: Oauth2 Facebook Login Request
+        in: body
+        name: Oauth2FacebookLoginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.Oauth2FacebookLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: facebook login
+      tags:
+      - authentication
+  /v1/oauth2/google:
+    post:
+      consumes:
+      - application/json
+      description: google login
+      parameters:
+      - description: Oauth2 Google Login Request
+        in: body
+        name: Oauth2GoogleLoginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.Oauth2GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: google login
+      tags:
+      - authentication
+  /v1/profile:
+    delete:
+      consumes:
+      - application/json
+      description: delete profile
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: delete profile
+      tags:
+      - profile
+    get:
+      consumes:
+      - application/json
+      description: get profile
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: get profile
+      tags:
+      - profile
+    put:
+      consumes:
+      - application/json
+      description: update profile
+      parameters:
+      - description: Update Profile Request
+        in: body
+        name: UpdateProfileRequest
+        required: true
+        schema:
+          $ref: '#/definitions/profile.UpdateProfileRequest'
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: update profile
+      tags:
+      - profile
+  /v1/profile/image:
+    put:
+      consumes:
+      - multipart/form-data
+      description: update image
+      parameters:
+      - description: image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: update image
+      tags:
+      - profile
+  /v1/profile/password:
+    put:
+      consumes:
+      - application/json
+      description: update password
+      parameters:
+      - description: Update Password Request
+        in: body
+        name: UpdatePasswordRequest
+        required: true
+        schema:
+          $ref: '#/definitions/profile.UpdatePasswordRequest'
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: update password
+      tags:
+      - profile
+  /v1/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: refresh token
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authentication.AuthenticationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: refresh token
+      tags:
+      - authentication
   /v1/register:
     post:
       consumes:
@@ -283,7 +724,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: delete user
+      description: delete user by uuid
       parameters:
       - description: User UUID
         in: path
@@ -318,7 +759,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/exception.ErrorResponse'
-      summary: delete user
+      summary: delete user by uuid
       tags:
       - user
     get:
@@ -365,7 +806,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: update user
+      description: update user by uuid
       parameters:
       - description: Update User Request
         in: body
@@ -406,7 +847,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/exception.ErrorResponse'
-      summary: update user
+      summary: update user by uuid
       tags:
       - user
 swagger: "2.0"

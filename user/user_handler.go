@@ -164,7 +164,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 }
 
 // @BasePath /api
-// CreateUser godoc
+// GetAllUsers godoc
 // @Summary get all users
 // @Schemes
 // @Description get all users
@@ -240,7 +240,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 
 // TODO handle multiple providers
 // @BasePath /api
-// CreateUser godoc
+// GetUser godoc
 // @Summary get user by uuid
 // @Schemes
 // @Description get user by uuid

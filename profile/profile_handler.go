@@ -1,6 +1,8 @@
 package profile
 
 import (
+	"database/sql"
+	"errors"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -11,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/manumura/go-auth-rbac-starter/common"
 	conf "github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/storage"
@@ -40,6 +43,21 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 	}
 }
 
+// @BasePath /api
+// GetProfile godoc
+// @Summary get profile
+// @Schemes
+// @Description get profile
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} user.User
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/profile [get]
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
@@ -50,12 +68,28 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	log.Info().Msgf("get profile for user UUID %s", u.Uuid)
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @BasePath /api
+// UpdateProfile godoc
+// @Summary update profile
+// @Schemes
+// @Description update profile
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param UpdateProfileRequest body UpdateProfileRequest true "Update Profile Request"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} user.User
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/profile [put]
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
@@ -80,18 +114,34 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 
 	_, err = h.UpdateProfileByUserUuid(ctx, u.Uuid, UpdateProfileParams(req))
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @BasePath /api
+// UpdatePassword godoc
+// @Summary update password
+// @Schemes
+// @Description update password
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param UpdatePasswordRequest body UpdatePasswordRequest true "Update Password Request"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} user.User
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/profile/password [put]
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
@@ -126,12 +176,28 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @BasePath /api
+// UpdateImage godoc
+// @Summary update image
+// @Schemes
+// @Description update image
+// @Tags profile
+// @Accept mpfd
+// @Produce json
+// @Param image formData file true "image file"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} user.User
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/profile/image [put]
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
@@ -208,7 +274,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 
 	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -251,6 +317,22 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 	return ext, nil
 }
 
+// @BasePath /api
+// DeleteProfile godoc
+// @Summary delete profile
+// @Schemes
+// @Description delete profile
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} common.MessageResponse
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/profile [delete]
 func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 	u, err := user.GetUserFromContext(ctx)
 	if err != nil {
@@ -261,14 +343,13 @@ func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 	log.Info().Msgf("delete profile for user UUID %s", u.Uuid)
 	_, err = h.DeleteProfileByUserUuid(ctx, u.Uuid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
+			return
+		}
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
-	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return
-	}
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, common.MessageResponse{Message: "profile deleted successfully"})
 }

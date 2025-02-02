@@ -43,6 +43,20 @@ func NewAuthenticationHandler(userService user.UserService, authenticationServic
 	}
 }
 
+// @BasePath /api
+// Login godoc
+// @Summary login
+// @Schemes
+// @Description login
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param LoginRequest body LoginRequest true "Login Request"
+// @Success 200 {object} AuthenticationResponse
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/login [post]
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -93,6 +107,20 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
+// @BasePath /api
+// RefreshToken godoc
+// @Summary refresh token
+// @Schemes
+// @Description refresh token
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthenticationResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/refresh-token [post]
 func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 	authenticatedUser, err := user.GetUserFromContext(ctx)
 	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
@@ -123,6 +151,20 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
+// @BasePath /api
+// Logout godoc
+// @Summary logout
+// @Schemes
+// @Description logout
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthenticationResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/logout [post]
 func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 	authenticatedUser, err := user.GetUserFromContext(ctx)
 	if err != nil {
@@ -147,6 +189,21 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
+// @BasePath /api
+// Oauth2FacebookLogin godoc
+// @Summary facebook login
+// @Schemes
+// @Description facebook login
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param Oauth2FacebookLoginRequest body Oauth2FacebookLoginRequest true "Oauth2 Facebook Login Request"
+// @Success 200 {object} AuthenticationResponse
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/oauth2/facebook [post]
 func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	var req Oauth2FacebookLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -182,6 +239,21 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
+// @BasePath /api
+// Oauth2GoogleLogin godoc
+// @Summary google login
+// @Schemes
+// @Description google login
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param Oauth2GoogleLoginRequest body Oauth2GoogleLoginRequest true "Oauth2 Google Login Request"
+// @Success 200 {object} AuthenticationResponse
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/oauth2/google [post]
 func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	var req Oauth2GoogleLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
