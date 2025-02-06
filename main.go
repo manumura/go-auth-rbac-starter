@@ -47,7 +47,6 @@ func main() {
 	}
 }
 
-// TODO Dockerize the application
 // https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), interruptSignals...)

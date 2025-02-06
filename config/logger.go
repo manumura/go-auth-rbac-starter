@@ -15,7 +15,10 @@ func ConfigureLogger(env string) {
 
 	writers = append(writers, zerolog.ConsoleWriter{Out: os.Stderr})
 	if env == "dev" {
-		writers = append(writers, newRollingFile())
+		f, err := newRollingFile()
+		if err == nil {
+			writers = append(writers, f)
+		}
 	}
 	mw := io.MultiWriter(writers...)
 
@@ -23,10 +26,10 @@ func ConfigureLogger(env string) {
 	log.Logger = zerolog.New(mw).With().Timestamp().Logger()
 }
 
-func newRollingFile() io.Writer {
+func newRollingFile() (io.Writer, error) {
 	if err := os.MkdirAll("logs", 0744); err != nil {
 		log.Error().Err(err).Str("path", "logs").Msg("can't create logs directory")
-		return nil
+		return nil, err
 	}
 
 	return &lumberjack.Logger{
@@ -34,5 +37,5 @@ func newRollingFile() io.Writer {
 		MaxBackups: 10,  // files
 		MaxSize:    10,  // megabytes
 		MaxAge:     365, // days
-	}
+	}, nil
 }
