@@ -82,7 +82,7 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.Create(ctx, user.CreateUserParams{
+	u, err := h.Create(ctx, user.CreateUserParams{
 		Name:            req.Name,
 		Email:           req.Email,
 		Password:        req.Password,
@@ -95,10 +95,10 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := ToAuthenticatedUser(user)
+	authenticatedUser := user.ToAuthenticatedUser(u)
 
 	// Send email with link to verify email
-	go h.EmailService.SendRegistrationEmail(user.UserCredentials.Email, "", user.VerifyEmailToken.Token)
+	go h.EmailService.SendRegistrationEmail(u.UserCredentials.Email, "", u.VerifyEmailToken.Token)
 	// if err != nil {
 	// 	log.Error().Err(err).Msg("failed to send email")
 	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
@@ -106,7 +106,7 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 	// }
 
 	// Send new user email to root user
-	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", user.UserCredentials.Email)
+	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", u.UserCredentials.Email)
 
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
@@ -188,7 +188,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/refresh-token [post]
 func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
-	authenticatedUser, err := GetUserFromContext(ctx)
+	authenticatedUser, err := user.GetUserFromContext(ctx)
 	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
@@ -231,7 +231,7 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/logout [post]
 func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
-	authenticatedUser, err := GetUserFromContext(ctx)
+	authenticatedUser, err := user.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -363,13 +363,13 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
-func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, AuthenticatedUser, error) {
+func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
 	var u user.UserEntity
 	u, err := h.GetByOauthProvider(ctx, p, id)
 	// Error is other than user not found
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		// ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
-		return AuthenticationResponse{}, AuthenticatedUser{}, exception.ErrLogin
+		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrLogin
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -384,21 +384,21 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 
 		if err != nil {
 			// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
-			return AuthenticationResponse{}, AuthenticatedUser{}, err
+			return AuthenticationResponse{}, user.AuthenticatedUser{}, err
 		}
 	}
 
 	return h.createAuthenticationTokens(u, ctx)
 }
 
-func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, AuthenticatedUser, error) {
-	authenticatedUser := ToAuthenticatedUser(u)
+func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
+	authenticatedUser := user.ToAuthenticatedUser(u)
 
 	t, err := h.generateTokens(authenticatedUser)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate authentication tokens")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, AuthenticatedUser{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	// Save the tokens in the database
@@ -413,7 +413,7 @@ func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ct
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save authentication token")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, AuthenticatedUser{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	authResponse := AuthenticationResponse{
@@ -427,7 +427,7 @@ func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ct
 }
 
 // TODO encrypt SHA256 ?
-func (h *AuthenticationHandler) generateTokens(authenticatedUser AuthenticatedUser) (authenticationToken, error) {
+func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {
 	now := time.Now().UTC()
 	accessTokenAsString, accessTokenExpiresAt, err := generateToken(now, h.AccessTokenExpiresInAsSeconds)
 	if err != nil {

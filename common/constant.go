@@ -1,5 +1,7 @@
 package common
 
 const (
-	ENVIRONMENT = "ENV"
+	ENVIRONMENT                    = "ENV"
+	UserEventsClientChanContextKey = "userEventsClientChan"
+	AuthenticatedUserContextKey    = "user"
 )

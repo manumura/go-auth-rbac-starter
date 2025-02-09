@@ -11,6 +11,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
+	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -112,7 +113,7 @@ func (h *ResetPasswordHandler) GetUserByToken(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := ToAuthenticatedUser(u)
+	authenticatedUser := user.ToAuthenticatedUser(u)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 
@@ -162,7 +163,7 @@ func (h *ResetPasswordHandler) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := ToAuthenticatedUser(u)
+	authenticatedUser := user.ToAuthenticatedUser(u)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
 

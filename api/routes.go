@@ -1,18 +1,22 @@
 package api
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/captcha"
+	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/profile"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/sse"
 	"github.com/manumura/go-auth-rbac-starter/storage"
 	"github.com/manumura/go-auth-rbac-starter/user"
 
@@ -79,6 +83,24 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	adminRoutes.GET("/v1/users/:uuid", userHandler.GetUser)
 	adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
 	adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
+
+	// TODO global event stream
+	userEventsStream := sse.NewEventStream()
+
+	// TODO remove test
+	// We are streaming current time to clients in the interval 10 seconds
+	go func() {
+		for {
+			time.Sleep(time.Second * 10)
+			now := time.Now().Format("2006-01-02 15:04:05")
+			currentTime := fmt.Sprintf("The Current Time Is %v", now)
+
+			// Send current time to clients message channel
+			userEventsStream.Message <- currentTime
+		}
+	}()
+
+	adminRoutes.GET("/v1/events/users", middleware.EventStreamMiddleware(), userEventsStream.ManageClients(common.UserEventsClientChanContextKey), userHandler.StreamUserEvents)
 
 	if config.Environment != "prod" {
 		docs.SwaggerInfo.BasePath = prefix

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/sse"
 	"github.com/rs/zerolog/log"
 )
 
@@ -311,4 +313,27 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 
 	user := ToUser(u)
 	ctx.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
+	v, ok := ctx.Get(common.UserEventsClientChanContextKey)
+	if !ok {
+		log.Error().Msg("client channel not found")
+		return
+	}
+
+	clientChan, ok := v.(sse.ClientChan)
+	if !ok {
+		log.Error().Msg("client channel is not of type ClientChan")
+		return
+	}
+
+	ctx.Stream(func(w io.Writer) bool {
+		// Stream message to client from message channel
+		if msg, ok := <-clientChan; ok {
+			ctx.SSEvent("message", msg)
+			return true
+		}
+		return false
+	})
 }

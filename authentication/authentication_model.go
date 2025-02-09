@@ -2,9 +2,6 @@ package authentication
 
 import (
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/manumura/go-auth-rbac-starter/role"
 )
 
 type RegisterRequest struct {
@@ -43,17 +40,6 @@ type AuthenticationResponse struct {
 	RefreshToken         string    `json:"refreshToken"`
 	IdToken              string    `json:"idToken"`
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
-}
-
-type AuthenticatedUser struct {
-	Uuid      uuid.UUID  `json:"uuid"`
-	Name      string     `json:"name"`
-	IsActive  bool       `json:"isActive"`
-	ImageID   string     `json:"imageId"`
-	ImageUrl  string     `json:"imageUrl"`
-	Role      role.Role  `json:"role"`
-	CreatedAt *time.Time `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
 }
 
 type VerifyEmailRequest struct {

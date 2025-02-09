@@ -163,3 +163,9 @@ func ToUsers(entities []UserEntity) []User {
 	}
 	return users
 }
+
+func ToAuthenticatedUser(entity UserEntity) AuthenticatedUser {
+	authenticatedUser := AuthenticatedUser{}
+	copier.Copy(&authenticatedUser, &entity)
+	return authenticatedUser
+}

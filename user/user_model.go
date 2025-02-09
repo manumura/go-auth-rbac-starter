@@ -118,3 +118,14 @@ type GetUsersParams struct {
 type CountUsersParams struct {
 	Role *role.Role `json:"role" validate:"omitempty,alpha"`
 }
+
+type AuthenticatedUser struct {
+	Uuid      uuid.UUID  `json:"uuid"`
+	Name      string     `json:"name"`
+	IsActive  bool       `json:"isActive"`
+	ImageID   string     `json:"imageId"`
+	ImageUrl  string     `json:"imageUrl"`
+	Role      role.Role  `json:"role"`
+	CreatedAt *time.Time `json:"createdAt"`
+	UpdatedAt *time.Time `json:"updatedAt"`
+}

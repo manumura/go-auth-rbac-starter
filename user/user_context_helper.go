@@ -1,15 +1,14 @@
-package authentication
+package user
 
 import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
+	"github.com/manumura/go-auth-rbac-starter/common"
 )
 
-const AuthenticatedUserKey = "user"
-
 func GetUserFromContext(ctx *gin.Context) (AuthenticatedUser, error) {
-	val, exists := ctx.Get(AuthenticatedUserKey)
+	val, exists := ctx.Get(common.AuthenticatedUserContextKey)
 	if !exists {
 		return AuthenticatedUser{}, errors.New("user not found in context")
 	}

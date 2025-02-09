@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -82,6 +83,6 @@ func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := ToAuthenticatedUser(u)
+	authenticatedUser := user.ToAuthenticatedUser(u)
 	ctx.JSON(http.StatusOK, authenticatedUser)
 }
