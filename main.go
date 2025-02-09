@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	_ "github.com/mattn/go-sqlite3"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
@@ -40,6 +38,7 @@ var interruptSignals = []os.Signal{
 // @tag.description Profile handler
 // @tag.name user
 // @tag.description User handler
+// TODO server sent events
 func main() {
 	ctx := context.Background()
 	if err := run(ctx, os.Args, os.Stdin, os.Stdout, os.Stderr); err != nil {

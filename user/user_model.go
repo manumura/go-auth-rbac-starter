@@ -66,13 +66,13 @@ type OauthUserProvider struct {
 }
 
 type CreateUserRequest struct {
-	Name  string    `json:"name" validate:"required,min=6,max=100"`
+	Name  string    `json:"name" validate:"required,min=5,max=100"`
 	Email string    `json:"email" validate:"required,email"`
 	Role  role.Role `json:"role" validate:"required,alpha"`
 }
 
 type CreateUserParams struct {
-	Name            string    `json:"name" validate:"required,min=6,max=100"`
+	Name            string    `json:"name" validate:"required,min=5,max=100"`
 	Email           string    `json:"email" validate:"required,email"`
 	Password        string    `json:"password" validate:"required"`
 	Role            role.Role `json:"role" validate:"required,alpha"`
@@ -80,7 +80,7 @@ type CreateUserParams struct {
 }
 
 type CreateOauthUserParams struct {
-	Name           string                      `json:"name" validate:"required,min=6,max=100"`
+	Name           string                      `json:"name" validate:"required,min=5,max=100"`
 	Role           role.Role                   `json:"role" validate:"required,alpha"`
 	Email          string                      `json:"email" validate:"required,email"`
 	OauthProvider  oauthprovider.OauthProvider `json:"oauthProvider" validate:"required,alpha"`
@@ -88,7 +88,7 @@ type CreateOauthUserParams struct {
 }
 
 type UpdateUserRequest struct {
-	Name     *string    `json:"name" validate:"omitempty,min=6,max=100"`
+	Name     *string    `json:"name" validate:"omitempty,min=5,max=100"`
 	Email    *string    `json:"email" validate:"omitempty,email"`
 	Password *string    `json:"password"`
 	Role     *role.Role `json:"role" validate:"omitempty,alpha"`
@@ -96,7 +96,7 @@ type UpdateUserRequest struct {
 }
 
 type UpdateUserParams struct {
-	Name     *string    `json:"name" validate:"omitempty,min=6,max=100"`
+	Name     *string    `json:"name" validate:"omitempty,min=5,max=100"`
 	Email    *string    `json:"email" validate:"omitempty,email"`
 	Password *string    `json:"password"`
 	Role     *role.Role `json:"role" validate:"omitempty,alpha"`

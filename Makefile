@@ -37,4 +37,5 @@ migrate-reset:
 swagger:
 	swag init
 
+# https://www.alexedwards.net/blog/a-time-saving-makefile-for-your-go-projects
 .PHONY: run test air proto sqlc migrate-status migrate-up migrate-up-by-one migrate-down migrate-version migrate-create migrate-reset swagger

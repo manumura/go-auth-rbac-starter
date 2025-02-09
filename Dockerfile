@@ -1,3 +1,4 @@
+# Example : https://github.com/GoogleCloudPlatform/golang-samples/blob/main/run/helloworld/Dockerfile
 # Build the application from source
 FROM golang:1.23.5 AS build
 

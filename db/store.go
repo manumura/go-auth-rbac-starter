@@ -11,6 +11,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog/log"
 
+	// _ "github.com/mattn/go-sqlite3"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
@@ -74,7 +75,7 @@ func (d *Database) Connect() error {
 	// - Set busy timeout, so concurrent writers wait on each other instead of erroring immediately
 	// - Enable foreign key checks
 	// log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
-	// db, err := sql.Open("sqlite3", d.config.DatabaseUrl+"?_journal=WAL&_timeout=5000&_fk=true")
+	// db, err := sql.Open("libsql", d.config.DatabaseUrl+"?_journal=WAL&_timeout=5000&_fk=true")
 	log.Info().Msgf("connecting to database at: %s", d.config.TursoDatabaseUrl)
 	url := d.config.TursoDatabaseUrl + "?authToken=" + d.config.TursoAuthToken
 	db, err := sql.Open("libsql", url)
