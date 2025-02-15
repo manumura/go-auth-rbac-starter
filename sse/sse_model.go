@@ -2,9 +2,11 @@ package sse
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/manumura/go-auth-rbac-starter/common"
+	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/rs/zerolog/log"
 )
 
@@ -71,10 +73,12 @@ func (stream *EventStream) listen() {
 func (stream *EventStream) ManageClients(clientChanKey string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// TODO remove test
-		val, exists := ctx.Get(common.AuthenticatedUserContextKey)
-		if exists {
-			fmt.Println("User found in context", val)
+		u, err := security.GetUserFromContext(ctx)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(err, http.StatusUnauthorized))
+			return
 		}
+		fmt.Println("user", u)
 
 		// Initialize client channel
 		clientChan := make(ClientChan)

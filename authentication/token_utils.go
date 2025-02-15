@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jaevor/go-nanoid"
-	"github.com/manumura/go-auth-rbac-starter/user"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/api/idtoken"
 )
@@ -22,7 +22,7 @@ func generateToken(now time.Time, durationInSeconds int) (string, time.Time, err
 	return tokenAsString, tokenExpiresAt, nil
 }
 
-func generateIdToken(now time.Time, durationInSeconds int, key []byte, user user.AuthenticatedUser) (string, time.Time, error) {
+func generateIdToken(now time.Time, durationInSeconds int, key []byte, user security.AuthenticatedUser) (string, time.Time, error) {
 	idTokenExpiresAt := now.Add(time.Duration(durationInSeconds) * time.Second)
 	idToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iat":  now.Unix(),

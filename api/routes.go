@@ -16,7 +16,6 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/middleware"
 	"github.com/manumura/go-auth-rbac-starter/profile"
 	"github.com/manumura/go-auth-rbac-starter/role"
-	"github.com/manumura/go-auth-rbac-starter/sse"
 	"github.com/manumura/go-auth-rbac-starter/storage"
 	"github.com/manumura/go-auth-rbac-starter/user"
 
@@ -84,9 +83,6 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
 	adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
 
-	// TODO global event stream
-	userEventsStream := sse.NewEventStream()
-
 	// TODO remove test
 	// We are streaming current time to clients in the interval 10 seconds
 	go func() {
@@ -96,11 +92,14 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 			currentTime := fmt.Sprintf("The Current Time Is %v", now)
 
 			// Send current time to clients message channel
-			userEventsStream.Message <- currentTime
+			userService.GetUserEventsStream().Message <- currentTime
 		}
 	}()
 
-	adminRoutes.GET("/v1/events/users", middleware.EventStreamMiddleware(), userEventsStream.ManageClients(common.UserEventsClientChanContextKey), userHandler.StreamUserEvents)
+	adminRoutes.GET("/v1/events/users",
+		middleware.EventStreamMiddleware(),
+		userService.GetUserEventsStream().ManageClients(common.UserEventsClientChanContextKey),
+		userHandler.StreamUserEvents)
 
 	if config.Environment != "prod" {
 		docs.SwaggerInfo.BasePath = prefix

@@ -17,6 +17,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/message"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
@@ -188,7 +189,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/refresh-token [post]
 func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
-	authenticatedUser, err := user.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
@@ -231,7 +232,7 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/logout [post]
 func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
-	authenticatedUser, err := user.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -363,13 +364,13 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, authResponse)
 }
 
-func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
+func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthProvider, name string, email string, ctx context.Context) (AuthenticationResponse, security.AuthenticatedUser, error) {
 	var u user.UserEntity
 	u, err := h.GetByOauthProvider(ctx, p, id)
 	// Error is other than user not found
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		// ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
-		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrLogin
+		return AuthenticationResponse{}, security.AuthenticatedUser{}, exception.ErrLogin
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -384,21 +385,21 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 
 		if err != nil {
 			// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
-			return AuthenticationResponse{}, user.AuthenticatedUser{}, err
+			return AuthenticationResponse{}, security.AuthenticatedUser{}, err
 		}
 	}
 
 	return h.createAuthenticationTokens(u, ctx)
 }
 
-func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, user.AuthenticatedUser, error) {
+func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ctx context.Context) (AuthenticationResponse, security.AuthenticatedUser, error) {
 	authenticatedUser := user.ToAuthenticatedUser(u)
 
 	t, err := h.generateTokens(authenticatedUser)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate authentication tokens")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, security.AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	// Save the tokens in the database
@@ -413,7 +414,7 @@ func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ct
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save authentication token")
 		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
-		return AuthenticationResponse{}, user.AuthenticatedUser{}, exception.ErrInternalServer
+		return AuthenticationResponse{}, security.AuthenticatedUser{}, exception.ErrInternalServer
 	}
 
 	authResponse := AuthenticationResponse{
@@ -427,7 +428,7 @@ func (h *AuthenticationHandler) createAuthenticationTokens(u user.UserEntity, ct
 }
 
 // TODO encrypt SHA256 ?
-func (h *AuthenticationHandler) generateTokens(authenticatedUser user.AuthenticatedUser) (authenticationToken, error) {
+func (h *AuthenticationHandler) generateTokens(authenticatedUser security.AuthenticatedUser) (authenticationToken, error) {
 	now := time.Now().UTC()
 	accessTokenAsString, accessTokenExpiresAt, err := generateToken(now, h.AccessTokenExpiresInAsSeconds)
 	if err != nil {

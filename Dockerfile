@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /go-auth-rbac-starter 
+RUN CGO_ENABLED=0 GOOS=linux go build -o /go-auth-rbac-starter ./cmd/. 
 
 # Deploy the application binary into a lean image
 FROM alpine:3 AS run

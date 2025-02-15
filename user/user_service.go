@@ -10,6 +10,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/db"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/sse"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,10 +32,12 @@ type UserService interface {
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
 	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
+	GetUserEventsStream() *sse.EventStream
 }
 
 type UserServiceImpl struct {
-	datastore db.DataStore
+	datastore        db.DataStore
+	userEventsStream *sse.EventStream
 }
 
 func NewUserService(datastore db.DataStore) UserService {
@@ -44,8 +47,11 @@ func NewUserService(datastore db.DataStore) UserService {
 	oauthProviderService := oauthprovider.NewOauthProviderService(datastore)
 	oauthProviderService.InitProvidersMaps(context.Background())
 
+	userEventsStream := sse.NewEventStream()
+
 	return &UserServiceImpl{
-		datastore: datastore,
+		datastore:        datastore,
+		userEventsStream: userEventsStream,
 	}
 }
 
@@ -374,4 +380,8 @@ func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, 
 	}
 
 	return false, nil
+}
+
+func (service *UserServiceImpl) GetUserEventsStream() *sse.EventStream {
+	return service.userEventsStream
 }

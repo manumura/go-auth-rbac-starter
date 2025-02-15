@@ -1,6 +1,6 @@
 run:
 	@echo "Running the program..."
-	go run main.go
+	go run cmd/main.go
 
 test:
 	go test -v -cover -short ./...

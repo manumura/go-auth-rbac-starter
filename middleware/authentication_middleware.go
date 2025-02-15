@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
-	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/cookie"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
@@ -60,7 +60,7 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 
 		authenticatedUser := user.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
-		ctx.Set(common.AuthenticatedUserContextKey, authenticatedUser)
+		ctx.Set(security.AuthenticatedUserContextKey, authenticatedUser)
 		ctx.Next()
 	}
 }
@@ -103,7 +103,7 @@ func RefreshAuthMiddleware(authenticationService authentication.AuthenticationSe
 
 		authenticatedUser := user.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
-		ctx.Set(common.AuthenticatedUserContextKey, authenticatedUser)
+		ctx.Set(security.AuthenticatedUserContextKey, authenticatedUser)
 		ctx.Next()
 	}
 }
@@ -126,7 +126,7 @@ func LogoutAuthMiddleware(authenticationService authentication.AuthenticationSer
 
 		authenticatedUser := user.ToAuthenticatedUser(u)
 		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
-		ctx.Set(common.AuthenticatedUserContextKey, authenticatedUser)
+		ctx.Set(security.AuthenticatedUserContextKey, authenticatedUser)
 		ctx.Next()
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/db"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/rs/zerolog/log"
 )
 
@@ -164,8 +165,8 @@ func ToUsers(entities []UserEntity) []User {
 	return users
 }
 
-func ToAuthenticatedUser(entity UserEntity) AuthenticatedUser {
-	authenticatedUser := AuthenticatedUser{}
+func ToAuthenticatedUser(entity UserEntity) security.AuthenticatedUser {
+	authenticatedUser := security.AuthenticatedUser{}
 	copier.Copy(&authenticatedUser, &entity)
 	return authenticatedUser
 }

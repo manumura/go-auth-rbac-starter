@@ -16,8 +16,8 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/common"
 	conf "github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/storage"
-	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -58,7 +58,7 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [get]
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -89,7 +89,7 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [put]
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -140,7 +140,7 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile/password [put]
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -195,7 +195,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile/image [put]
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
@@ -329,7 +329,7 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [delete]
 func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
-	u, err := user.GetUserFromContext(ctx)
+	u, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
