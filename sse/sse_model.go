@@ -11,7 +11,10 @@ import (
 )
 
 // New event messages are broadcast to all registered client connection channels
-type ClientChan chan string
+type Client struct {
+	Channel chan string
+	User    security.AuthenticatedUser
+}
 
 // https://github.com/gin-gonic/examples/blob/master/server-sent-event/main.go
 // https://pascalallen.medium.com/streaming-server-sent-events-with-go-8cc1f615d561
@@ -19,25 +22,25 @@ type ClientChan chan string
 // and broadcasting events to those clients.
 type EventStream struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Message ClientChan
+	Message chan string
 
 	// New client connections
-	NewClients chan ClientChan
+	NewClients chan Client
 
 	// Closed client connections
-	ClosedClients chan ClientChan
+	ClosedClients chan Client
 
 	// Total client connections
-	TotalClients map[ClientChan]bool
+	TotalClients map[Client]bool
 }
 
 // Initialize event and Start procnteessing requests
 func NewEventStream() (event *EventStream) {
 	event = &EventStream{
-		Message:       make(ClientChan),
-		NewClients:    make(chan ClientChan),
-		ClosedClients: make(chan ClientChan),
-		TotalClients:  make(map[ClientChan]bool),
+		Message:       make(chan string),
+		NewClients:    make(chan Client),
+		ClosedClients: make(chan Client),
+		TotalClients:  make(map[Client]bool),
 	}
 
 	go event.listen()
@@ -58,13 +61,13 @@ func (stream *EventStream) listen() {
 		// Remove closed client
 		case client := <-stream.ClosedClients:
 			delete(stream.TotalClients, client)
-			close(client)
+			close(client.Channel)
 			log.Info().Msgf("Removed client. %d registered clients", len(stream.TotalClients))
 
 		// Broadcast message to client
 		case eventMsg := <-stream.Message:
 			for clientMessageChan := range stream.TotalClients {
-				clientMessageChan <- eventMsg
+				clientMessageChan.Channel <- eventMsg
 			}
 		}
 	}
@@ -81,22 +84,26 @@ func (stream *EventStream) ManageClients(clientChanKey string) gin.HandlerFunc {
 		fmt.Println("user", u)
 
 		// Initialize client channel
-		clientChan := make(ClientChan)
+		c := make(chan string)
+		clientChannel := Client{
+			Channel: c,
+			User:    u,
+		}
 
 		// Send new connection to event server
-		stream.NewClients <- clientChan
+		stream.NewClients <- clientChannel
 
 		defer func() {
 			// Drain client channel so that it does not block. Server may keep sending messages to this channel
 			go func() {
-				for range clientChan {
+				for range clientChannel.Channel {
 				}
 			}()
 			// Send closed connection to event server
-			stream.ClosedClients <- clientChan
+			stream.ClosedClients <- clientChannel
 		}()
 
-		ctx.Set(clientChanKey, clientChan)
+		ctx.Set(clientChanKey, clientChannel)
 
 		ctx.Next()
 	}

@@ -17,6 +17,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	UserEventsClientChanContextKey = "userEventsClientChan"
+)
+
 type UserHandler struct {
 	// https://stackoverflow.com/questions/28014591/nameless-fields-in-go-structs
 	UserService
@@ -315,14 +319,18 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+func (h *UserHandler) ManageUserEventsStreamClients() gin.HandlerFunc {
+	return h.GetUserEventsStream().ManageClients(UserEventsClientChanContextKey)
+}
+
 func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
-	v, ok := ctx.Get(common.UserEventsClientChanContextKey)
+	v, ok := ctx.Get(UserEventsClientChanContextKey)
 	if !ok {
 		log.Error().Msg("client channel not found")
 		return
 	}
 
-	clientChan, ok := v.(sse.ClientChan)
+	clientChan, ok := v.(sse.Client)
 	if !ok {
 		log.Error().Msg("client channel is not of type ClientChan")
 		return
@@ -330,7 +338,7 @@ func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
 
 	ctx.Stream(func(w io.Writer) bool {
 		// Stream message to client from message channel
-		if msg, ok := <-clientChan; ok {
+		if msg, ok := <-clientChan.Channel; ok {
 			ctx.SSEvent("message", msg)
 			return true
 		}

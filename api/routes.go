@@ -9,7 +9,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/captcha"
-	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
@@ -98,7 +97,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	adminRoutes.GET("/v1/events/users",
 		middleware.EventStreamMiddleware(),
-		userService.GetUserEventsStream().ManageClients(common.UserEventsClientChanContextKey),
+		userHandler.ManageUserEventsStreamClients(),
 		userHandler.StreamUserEvents)
 
 	if config.Environment != "prod" {
