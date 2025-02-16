@@ -32,12 +32,12 @@ type UserService interface {
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
 	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
-	GetUserEventsStream() *sse.EventStream
+	GetUserEventsStream() *sse.EventStream[UserChangeEvent]
 }
 
 type UserServiceImpl struct {
 	datastore        db.DataStore
-	userEventsStream *sse.EventStream
+	userEventsStream *sse.EventStream[UserChangeEvent]
 }
 
 func NewUserService(datastore db.DataStore) UserService {
@@ -47,7 +47,7 @@ func NewUserService(datastore db.DataStore) UserService {
 	oauthProviderService := oauthprovider.NewOauthProviderService(datastore)
 	oauthProviderService.InitProvidersMaps(context.Background())
 
-	userEventsStream := sse.NewEventStream()
+	userEventsStream := newEventStream()
 
 	return &UserServiceImpl{
 		datastore:        datastore,
@@ -382,6 +382,20 @@ func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, 
 	return false, nil
 }
 
-func (service *UserServiceImpl) GetUserEventsStream() *sse.EventStream {
+func (service *UserServiceImpl) GetUserEventsStream() *sse.EventStream[UserChangeEvent] {
 	return service.userEventsStream
+}
+
+// Initialize event and Start procnteessing requests
+func newEventStream() (event *sse.EventStream[UserChangeEvent]) {
+	event = &sse.EventStream[UserChangeEvent]{
+		Message:       make(chan UserChangeEvent),
+		NewClients:    make(chan sse.Client[UserChangeEvent]),
+		ClosedClients: make(chan sse.Client[UserChangeEvent]),
+		TotalClients:  make(map[sse.Client[UserChangeEvent]]bool),
+	}
+
+	go event.Listen()
+
+	return
 }

@@ -118,3 +118,27 @@ type GetUsersParams struct {
 type CountUsersParams struct {
 	Role *role.Role `json:"role" validate:"omitempty,alpha"`
 }
+
+type UserChangeEvent struct {
+	ID    string              `json:"id"`
+	Type  UserChangeEventType `json:"type"`
+	Retry int                 `json:"retry"`
+	Data  UserEventModel      `json:"data"`
+}
+
+type UserEventModel struct {
+	User          User      `json:"user"`
+	AuditUserUUID uuid.UUID `json:"auditUserUuid"`
+}
+
+type UserChangeEventType string
+
+const (
+	CREATED UserChangeEventType = "USER_CREATED"
+	UPDATED UserChangeEventType = "USER_UPDATED"
+	DELETED UserChangeEventType = "USER_DELETED"
+)
+
+func (t UserChangeEventType) String() string {
+	return string(t)
+}

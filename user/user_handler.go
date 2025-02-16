@@ -330,16 +330,17 @@ func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
 		return
 	}
 
-	clientChan, ok := v.(sse.Client)
+	client, ok := v.(sse.Client[UserChangeEvent])
 	if !ok {
-		log.Error().Msg("client channel is not of type ClientChan")
+		log.Error().Msg("client channel is not of type Client[UserChangeEvent]")
 		return
 	}
 
 	ctx.Stream(func(w io.Writer) bool {
 		// Stream message to client from message channel
-		if msg, ok := <-clientChan.Channel; ok {
-			ctx.SSEvent("message", msg)
+		if event, ok := <-client.Channel; ok {
+			// ctx.SSEvent("event", event)
+			sse.RenderSSEvent(ctx, event.Type.String(), event.ID, event.Data)
 			return true
 		}
 		return false

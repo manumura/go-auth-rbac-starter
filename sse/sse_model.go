@@ -1,9 +1,9 @@
 package sse
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/security"
@@ -11,8 +11,8 @@ import (
 )
 
 // New event messages are broadcast to all registered client connection channels
-type Client struct {
-	Channel chan string
+type Client[T any] struct {
+	Channel chan T
 	User    security.AuthenticatedUser
 }
 
@@ -20,37 +20,23 @@ type Client struct {
 // https://pascalallen.medium.com/streaming-server-sent-events-with-go-8cc1f615d561
 // It keeps a list of clients those are currently attached
 // and broadcasting events to those clients.
-type EventStream struct {
+type EventStream[T any] struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Message chan string
+	Message chan T
 
 	// New client connections
-	NewClients chan Client
+	NewClients chan Client[T]
 
 	// Closed client connections
-	ClosedClients chan Client
+	ClosedClients chan Client[T]
 
 	// Total client connections
-	TotalClients map[Client]bool
-}
-
-// Initialize event and Start procnteessing requests
-func NewEventStream() (event *EventStream) {
-	event = &EventStream{
-		Message:       make(chan string),
-		NewClients:    make(chan Client),
-		ClosedClients: make(chan Client),
-		TotalClients:  make(map[Client]bool),
-	}
-
-	go event.listen()
-
-	return
+	TotalClients map[Client[T]]bool
 }
 
 // It Listens all incoming requests from clients.
 // Handles addition and removal of clients and broadcast messages to clients.
-func (stream *EventStream) listen() {
+func (stream *EventStream[T]) Listen() {
 	for {
 		select {
 		// Add new available client
@@ -73,38 +59,45 @@ func (stream *EventStream) listen() {
 	}
 }
 
-func (stream *EventStream) ManageClients(clientChanKey string) gin.HandlerFunc {
+func (stream *EventStream[T]) ManageClients(clientChanKey string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// TODO remove test
 		u, err := security.GetUserFromContext(ctx)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(err, http.StatusUnauthorized))
 			return
 		}
-		fmt.Println("user", u)
 
 		// Initialize client channel
-		c := make(chan string)
-		clientChannel := Client{
+		c := make(chan T)
+		client := Client[T]{
 			Channel: c,
 			User:    u,
 		}
 
 		// Send new connection to event server
-		stream.NewClients <- clientChannel
+		stream.NewClients <- client
 
 		defer func() {
 			// Drain client channel so that it does not block. Server may keep sending messages to this channel
 			go func() {
-				for range clientChannel.Channel {
+				for range client.Channel {
 				}
 			}()
 			// Send closed connection to event server
-			stream.ClosedClients <- clientChannel
+			stream.ClosedClients <- client
 		}()
 
-		ctx.Set(clientChanKey, clientChannel)
+		ctx.Set(clientChanKey, client)
 
 		ctx.Next()
 	}
+}
+
+func RenderSSEvent(ctx *gin.Context, event string, id string, message interface{}) {
+	ctx.Render(-1, sse.Event{
+		Event: event,
+		Id:    id,
+		// Retry: retry,
+		Data: message,
+	})
 }
