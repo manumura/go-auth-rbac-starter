@@ -1,13 +1,10 @@
 package api
 
 import (
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/captcha"
 	"github.com/manumura/go-auth-rbac-starter/config"
@@ -85,37 +82,28 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	// TODO remove test
 	// We are streaming current time to clients in the interval 10 seconds
-	go func() {
-		for {
-			time.Sleep(time.Second * 5)
-			now := time.Now().Format("20060102150405")
+	// go func() {
+	// 	for {
+	// 		time.Sleep(time.Second * 5)
+	// 		// now := time.Now().Format("20060102150405")
 
-			// currentTime := fmt.Sprintf("The Current Time Is %v", now)
-			// // Send current time to clients message channel
-			// userService.GetUserEventsStream().Message <- currentTime
+	// 		// currentTime := fmt.Sprintf("The Current Time Is %v", now)
+	// 		// // Send current time to clients message channel
+	// 		// userService.GetUserEventsStream().Message <- currentTime
 
-			// const d = moment(user.updatedAt).utc().format('YYYY-MM-DDTHH:mm:ssZ');
-			// this.id = type + '-' + user.uuid + '-' + d;
-			id := fmt.Sprintf("%s-uuid-%s", user.CREATED.String(), now)
-			e := user.UserChangeEvent{
-				Type: user.CREATED,
-				ID:   id,
-				Data: user.UserEventModel{
-					User: user.User{
-						Uuid: uuid.New(),
-						Name: "Test User",
-					},
-					AuditUserUUID: uuid.New(),
-				},
-			}
-			// Send current time to clients message channel
-			userService.GetUserEventsStream().Message <- e
-		}
-	}()
+	// 		// const d = moment(user.updatedAt).utc().format('YYYY-MM-DDTHH:mm:ssZ');
+	// 		// this.id = type + '-' + user.uuid + '-' + d;
+	// 		e := user.NewUserChangeEvent(user.CREATED, user.User{
+	// 			Uuid: uuid.New(),
+	// 			Name: "Test User",
+	// 		}, uuid.New())
+	// 		userService.GetUserEventsStream().Message <- e
+	// 	}
+	// }()
 
 	adminRoutes.GET("/v1/events/users",
 		middleware.EventStreamMiddleware(),
-		userHandler.ManageUserEventsStreamClients(),
+		userService.ManageUserEventsStreamClients(),
 		userHandler.StreamUserEvents)
 
 	if config.Environment != "prod" {

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -124,6 +125,20 @@ type UserChangeEvent struct {
 	Type  UserChangeEventType `json:"type"`
 	Retry int                 `json:"retry"`
 	Data  UserEventModel      `json:"data"`
+}
+
+func NewUserChangeEvent(t UserChangeEventType, user User, auditUserUuid uuid.UUID) UserChangeEvent {
+	now := time.Now().Format("20060102150405")
+	id := fmt.Sprintf("%s-%s-%s", t.String(), user.Uuid.String(), now)
+
+	return UserChangeEvent{
+		ID:   id,
+		Type: t,
+		Data: UserEventModel{
+			User:          user,
+			AuditUserUUID: auditUserUuid,
+		},
+	}
 }
 
 type UserEventModel struct {

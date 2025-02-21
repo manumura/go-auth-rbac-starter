@@ -96,7 +96,7 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	authenticatedUser := user.ToAuthenticatedUser(u)
+	createdUser := user.ToUser(u)
 
 	// Send email with link to verify email
 	go h.EmailService.SendRegistrationEmail(u.UserCredentials.Email, "", u.VerifyEmailToken.Token)
@@ -109,7 +109,10 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 	// Send new user email to root user
 	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", u.UserCredentials.Email)
 
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	e := user.NewUserChangeEvent(user.CREATED, createdUser, createdUser.Uuid)
+	h.GetUserEventsStream().Message <- e
+
+	ctx.JSON(http.StatusOK, createdUser)
 }
 
 // @BasePath /api

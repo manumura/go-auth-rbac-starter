@@ -13,6 +13,19 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	cfg := cors.DefaultConfig()
 	cfg.AllowOrigins = allowedOrigins
 	cfg.AllowCredentials = true
-	cfg.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept-Encoding", "Accept", "Cache-Control", "X-CSRF-Token", "X-Requested-With", "pragma", "expires"}
+	cfg.AllowHeaders = []string{
+		"Origin",
+		"Content-Length",
+		"Content-Type",
+		"Authorization",
+		"Accept-Encoding",
+		"Accept",
+		"Cache-Control",
+		"X-CSRF-Token",
+		"X-Requested-With",
+		"pragma",
+		"expires",
+		"last-event-id",
+	}
 	return cors.New(cfg)
 }

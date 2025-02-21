@@ -61,7 +61,7 @@ func (stream *EventStream[T]) Listen() {
 
 func (stream *EventStream[T]) ManageClients(clientChanKey string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		u, err := security.GetUserFromContext(ctx)
+		authenticatedUser, err := security.GetUserFromContext(ctx)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(err, http.StatusUnauthorized))
 			return
@@ -71,7 +71,7 @@ func (stream *EventStream[T]) ManageClients(clientChanKey string) gin.HandlerFun
 		c := make(chan T)
 		client := Client[T]{
 			Channel: c,
-			User:    u,
+			User:    authenticatedUser,
 		}
 
 		// Send new connection to event server

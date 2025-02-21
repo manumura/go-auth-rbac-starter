@@ -13,6 +13,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/sse"
 	"github.com/rs/zerolog/log"
 )
@@ -54,6 +55,12 @@ func NewUserHandler(service UserService, emailService message.EmailService, conf
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/users [post]
 func (h *UserHandler) CreateUser(ctx *gin.Context) {
+	authenticatedUser, err := security.GetUserFromContext(ctx)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		return
+	}
+
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
@@ -96,6 +103,10 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 
 	// Send email with generated password
 	go h.EmailService.SendTemporaryPasswordEmail(user.UserCredentials.Email, "", generatedPassword)
+
+	// Push new user event
+	e := NewUserChangeEvent(CREATED, u, authenticatedUser.Uuid)
+	h.GetUserEventsStream().Message <- e
 
 	ctx.JSON(http.StatusOK, u)
 }
@@ -227,6 +238,12 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/users/{uuid} [put]
 func (h *UserHandler) UpdateUser(ctx *gin.Context) {
+	authenticatedUser, err := security.GetUserFromContext(ctx)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		return
+	}
+
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("update user by uuid %s", userUuidAsString)
 
@@ -275,6 +292,11 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	user := ToUser(u)
+
+	// Push new user event
+	e := NewUserChangeEvent(UPDATED, user, authenticatedUser.Uuid)
+	h.GetUserEventsStream().Message <- e
+
 	ctx.JSON(http.StatusOK, user)
 }
 
@@ -294,10 +316,16 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/users/{uuid} [delete]
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
+	authenticatedUser, err := security.GetUserFromContext(ctx)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		return
+	}
+
 	userUuidAsString := ctx.Param("uuid")
 	log.Info().Msgf("delete user by uuid %s", userUuidAsString)
 
-	_, err := uuid.Parse(userUuidAsString)
+	_, err = uuid.Parse(userUuidAsString)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
@@ -316,11 +344,12 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	}
 
 	user := ToUser(u)
-	ctx.JSON(http.StatusOK, user)
-}
 
-func (h *UserHandler) ManageUserEventsStreamClients() gin.HandlerFunc {
-	return h.GetUserEventsStream().ManageClients(UserEventsClientChanContextKey)
+	// Push new user event
+	e := NewUserChangeEvent(DELETED, user, authenticatedUser.Uuid)
+	h.GetUserEventsStream().Message <- e
+
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {

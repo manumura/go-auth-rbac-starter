@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
@@ -33,6 +34,7 @@ type UserService interface {
 	CheckPassword(password string, hashedPassword string) error
 	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
 	GetUserEventsStream() *sse.EventStream[UserChangeEvent]
+	ManageUserEventsStreamClients() gin.HandlerFunc
 }
 
 type UserServiceImpl struct {
@@ -384,6 +386,10 @@ func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, 
 
 func (service *UserServiceImpl) GetUserEventsStream() *sse.EventStream[UserChangeEvent] {
 	return service.userEventsStream
+}
+
+func (service *UserServiceImpl) ManageUserEventsStreamClients() gin.HandlerFunc {
+	return service.userEventsStream.ManageClients(UserEventsClientChanContextKey)
 }
 
 // Initialize event and Start procnteessing requests

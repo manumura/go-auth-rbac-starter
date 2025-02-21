@@ -18,6 +18,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/storage"
+	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -58,14 +59,14 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [get]
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
-	u, err := security.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
-	log.Info().Msgf("get profile for user UUID %s", u.Uuid)
-	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	log.Info().Msgf("get profile for user UUID %s", authenticatedUser.Uuid)
+	user, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
@@ -89,13 +90,13 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [put]
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
-	u, err := security.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
-	log.Info().Msgf("update profile for user UUID %s", u.Uuid)
+	log.Info().Msgf("update profile for user UUID %s", authenticatedUser.Uuid)
 	var req UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
@@ -110,18 +111,23 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.UpdateProfileByUserUuid(ctx, u.Uuid, UpdateProfileParams(req))
+	_, err = h.UpdateProfileByUserUuid(ctx, authenticatedUser.Uuid, UpdateProfileParams(req))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
-	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+
+	// Push new user event
+	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
+	h.GetUserEventsStream().Message <- e
+
+	ctx.JSON(http.StatusOK, u)
 }
 
 // @BasePath /api
@@ -140,13 +146,13 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile/password [put]
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
-	u, err := security.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
-	log.Info().Msgf("update password for user UUID %s", u.Uuid)
+	log.Info().Msgf("update password for user UUID %s", authenticatedUser.Uuid)
 	var req UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
@@ -161,7 +167,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.UpdatePasswordByUserUuid(ctx, u.Uuid, UpdatePasswordParams(req))
+	_, err = h.UpdatePasswordByUserUuid(ctx, authenticatedUser.Uuid, UpdatePasswordParams(req))
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == exception.ErrNotFound || err == exception.ErrInvalidRequest {
@@ -171,12 +177,17 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+
+	// Push new user event
+	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
+	h.GetUserEventsStream().Message <- e
+
+	ctx.JSON(http.StatusOK, u)
 }
 
 // @BasePath /api
@@ -195,20 +206,20 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile/image [put]
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
-	u, err := security.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
-	log.Info().Msgf("update image for user UUID %s", u.Uuid)
+	log.Info().Msgf("update image for user UUID %s", authenticatedUser.Uuid)
 	file, err := ctx.FormFile("image")
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
-	filename, err := getFileName(file, u.Uuid)
+	filename, err := getFileName(file, authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
@@ -232,8 +243,8 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	}
 
 	// Delete old image
-	if u.ImageID != "" {
-		err = h.StorageService.DeleteObject(ctx, client, h.Config.AwsS3Bucket, u.ImageID)
+	if authenticatedUser.ImageID != "" {
+		err = h.StorageService.DeleteObject(ctx, client, h.Config.AwsS3Bucket, authenticatedUser.ImageID)
 		if err != nil {
 			log.Error().Err(err).Msg("error deleting old image")
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
@@ -258,7 +269,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 		ImageID:  res.ID,
 		ImageURL: url,
 	}
-	_, err = h.UpdateImageByUserUuid(ctx, u.Uuid, p)
+	_, err = h.UpdateImageByUserUuid(ctx, authenticatedUser.Uuid, p)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
@@ -268,12 +279,17 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	// 	log.Warn().Err(err).Msgf("cannot remove file %s", tmpFile)
 	// }
 
-	user, err := h.GetProfileByUserUuid(ctx, u.Uuid)
+	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+
+	// Push new user event
+	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
+	h.GetUserEventsStream().Message <- e
+
+	ctx.JSON(http.StatusOK, u)
 }
 
 func getFileName(file *multipart.FileHeader, userUuid uuid.UUID) (string, error) {
@@ -329,14 +345,14 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/profile [delete]
 func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
-	u, err := security.GetUserFromContext(ctx)
+	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
-	log.Info().Msgf("delete profile for user UUID %s", u.Uuid)
-	_, err = h.DeleteProfileByUserUuid(ctx, u.Uuid)
+	log.Info().Msgf("delete profile for user UUID %s", authenticatedUser.Uuid)
+	_, err = h.DeleteProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
@@ -345,6 +361,16 @@ func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
+
+	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
+		return
+	}
+
+	// Push new user event
+	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
+	h.GetUserEventsStream().Message <- e
 
 	ctx.JSON(http.StatusOK, common.MessageResponse{Message: "profile deleted successfully"})
 }

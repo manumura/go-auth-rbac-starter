@@ -12,13 +12,13 @@ import (
 
 func RoleMiddleware(roles []role.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		u, err := security.GetUserFromContext(ctx)
+		authenticatedUser, err := security.GetUserFromContext(ctx)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.GetErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
 		}
 
-		ok := slices.Contains(roles, u.Role)
+		ok := slices.Contains(roles, authenticatedUser.Role)
 		if !ok {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, exception.GetErrorResponse(exception.ErrForbidden, http.StatusForbidden))
 			return
