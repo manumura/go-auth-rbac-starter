@@ -106,7 +106,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 
 	// Push new user event
 	e := NewUserChangeEvent(CREATED, u, authenticatedUser.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, u)
 }
@@ -295,7 +295,7 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 
 	// Push new user event
 	e := NewUserChangeEvent(UPDATED, user, authenticatedUser.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, user)
 }
@@ -347,7 +347,7 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 
 	// Push new user event
 	e := NewUserChangeEvent(DELETED, user, authenticatedUser.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, user)
 }

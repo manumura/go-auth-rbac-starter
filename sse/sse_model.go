@@ -59,7 +59,7 @@ func (stream *EventStream[T]) Listen() {
 	}
 }
 
-func (stream *EventStream[T]) ManageClients(clientChanKey string) gin.HandlerFunc {
+func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authenticatedUser, err := security.GetUserFromContext(ctx)
 		if err != nil {
@@ -72,6 +72,12 @@ func (stream *EventStream[T]) ManageClients(clientChanKey string) gin.HandlerFun
 		client := Client[T]{
 			Channel: c,
 			User:    authenticatedUser,
+		}
+
+		// TODO: Check if client already exists
+		_, ok := stream.TotalClients[client]
+		if ok {
+			log.Info().Msgf("Client already exists. %d registered clients", len(stream.TotalClients))
 		}
 
 		// Send new connection to event server

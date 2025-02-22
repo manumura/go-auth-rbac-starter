@@ -80,30 +80,9 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
 	adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
 
-	// TODO remove test
-	// We are streaming current time to clients in the interval 10 seconds
-	// go func() {
-	// 	for {
-	// 		time.Sleep(time.Second * 5)
-	// 		// now := time.Now().Format("20060102150405")
-
-	// 		// currentTime := fmt.Sprintf("The Current Time Is %v", now)
-	// 		// // Send current time to clients message channel
-	// 		// userService.GetUserEventsStream().Message <- currentTime
-
-	// 		// const d = moment(user.updatedAt).utc().format('YYYY-MM-DDTHH:mm:ssZ');
-	// 		// this.id = type + '-' + user.uuid + '-' + d;
-	// 		e := user.NewUserChangeEvent(user.CREATED, user.User{
-	// 			Uuid: uuid.New(),
-	// 			Name: "Test User",
-	// 		}, uuid.New())
-	// 		userService.GetUserEventsStream().Message <- e
-	// 	}
-	// }()
-
 	adminRoutes.GET("/v1/events/users",
 		middleware.EventStreamMiddleware(),
-		userService.ManageUserEventsStreamClients(),
+		userService.ManageUserEventsStreamClientsMiddleware(),
 		userHandler.StreamUserEvents)
 
 	if config.Environment != "prod" {

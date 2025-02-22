@@ -125,7 +125,7 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 
 	// Push new user event
 	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, u)
 }
@@ -185,7 +185,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 
 	// Push new user event
 	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, u)
 }
@@ -287,7 +287,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 
 	// Push new user event
 	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, u)
 }
@@ -370,7 +370,7 @@ func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 
 	// Push new user event
 	e := user.NewUserChangeEvent(user.UPDATED, u, u.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, common.MessageResponse{Message: "profile deleted successfully"})
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
-	"github.com/manumura/go-auth-rbac-starter/sse"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -19,7 +18,7 @@ type ProfileService interface {
 	UpdatePasswordByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdatePasswordParams) (user.UserEntity, error)
 	UpdateImageByUserUuid(ctx context.Context, userUUID uuid.UUID, req UpdateImageParams) (user.UserEntity, error)
 	DeleteProfileByUserUuid(ctx context.Context, userUUID uuid.UUID) (user.UserEntity, error)
-	GetUserEventsStream() *sse.EventStream[user.UserChangeEvent]
+	PushUserEvent(event user.UserChangeEvent)
 }
 
 type ProfileServiceImpl struct {
@@ -126,6 +125,6 @@ func (service *ProfileServiceImpl) DeleteProfileByUserUuid(ctx context.Context, 
 	return u, err
 }
 
-func (service *ProfileServiceImpl) GetUserEventsStream() *sse.EventStream[user.UserChangeEvent] {
-	return service.GetUserEventsStream()
+func (service *ProfileServiceImpl) PushUserEvent(event user.UserChangeEvent) {
+	service.userService.PushUserEvent(event)
 }

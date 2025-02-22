@@ -38,7 +38,6 @@ var interruptSignals = []os.Signal{
 // @tag.description Profile handler
 // @tag.name user
 // @tag.description User handler
-// TODO server sent events
 func main() {
 	ctx := context.Background()
 	if err := run(ctx, os.Args, os.Stdin, os.Stdout, os.Stderr); err != nil {

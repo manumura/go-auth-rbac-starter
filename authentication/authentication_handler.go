@@ -110,7 +110,7 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 	go h.EmailService.SendNewUserEmail(h.Config.SmtpFrom, "", u.UserCredentials.Email)
 
 	e := user.NewUserChangeEvent(user.CREATED, createdUser, createdUser.Uuid)
-	h.GetUserEventsStream().Message <- e
+	h.PushUserEvent(e)
 
 	ctx.JSON(http.StatusOK, createdUser)
 }

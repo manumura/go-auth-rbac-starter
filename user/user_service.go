@@ -33,8 +33,8 @@ type UserService interface {
 	GetByOauthProvider(ctx context.Context, provider oauthprovider.OauthProvider, externalUserID string) (UserEntity, error)
 	CheckPassword(password string, hashedPassword string) error
 	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
-	GetUserEventsStream() *sse.EventStream[UserChangeEvent]
-	ManageUserEventsStreamClients() gin.HandlerFunc
+	PushUserEvent(event UserChangeEvent)
+	ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc
 }
 
 type UserServiceImpl struct {
@@ -384,12 +384,12 @@ func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, 
 	return false, nil
 }
 
-func (service *UserServiceImpl) GetUserEventsStream() *sse.EventStream[UserChangeEvent] {
-	return service.userEventsStream
+func (service *UserServiceImpl) PushUserEvent(event UserChangeEvent) {
+	service.userEventsStream.Message <- event
 }
 
-func (service *UserServiceImpl) ManageUserEventsStreamClients() gin.HandlerFunc {
-	return service.userEventsStream.ManageClients(UserEventsClientChanContextKey)
+func (service *UserServiceImpl) ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc {
+	return service.userEventsStream.ManageClientsMiddleware(UserEventsClientChanContextKey)
 }
 
 // Initialize event and Start procnteessing requests
