@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,7 +32,7 @@ func (s *StorageServiceImpl) GetS3Client(ctx context.Context, region string) (*s
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("error loading config")
-		return nil, exception.ErrCannotCreateUser
+		return nil, err
 	}
 
 	client := s3.NewFromConfig(cfg)

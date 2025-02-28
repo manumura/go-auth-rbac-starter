@@ -129,23 +129,36 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 // @Router /v1/users [get]
 func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	r := role.Role(ctx.Query("role"))
-	page, err := strconv.Atoi(ctx.Query("page"))
-	if err != nil {
-		log.Error().Err(err).Msg("page is not a number")
-		page = 1
+
+	page := 1
+	if ctx.Query("page") != "" {
+		p, err := strconv.Atoi(ctx.Query("page"))
+		if err != nil {
+			log.Warn().Err(err).Msg("page is not a number: defaulting to 1")
+			page = 1
+		} else {
+			page = p
+		}
 	}
-	pageSize, err := strconv.Atoi(ctx.Query("pageSize"))
-	if err != nil {
-		log.Error().Err(err).Msg("pageSize is not a number")
-		pageSize = 10
+
+	pageSize := 10
+	if ctx.Query("pageSize") != "" {
+		ps, err := strconv.Atoi(ctx.Query("pageSize"))
+		if err != nil {
+			log.Warn().Err(err).Msg("pageSize is not a number: defaulting to 10")
+			pageSize = 10
+		} else {
+			pageSize = ps
+		}
 	}
+
 	req := GetUsersRequest{
 		Role:     r,
 		Page:     page,
 		PageSize: pageSize,
 	}
 
-	err = h.Validate.Struct(req)
+	err := h.Validate.Struct(req)
 	if err != nil {
 		log.Error().Err(err).Msg("validation error")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
@@ -203,7 +216,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 // @Router /v1/users/{uuid} [get]
 func (h *UserHandler) GetUser(ctx *gin.Context) {
 	userUuidAsString := ctx.Param("uuid")
-	log.Info().Msgf("get user by uuid %s", userUuidAsString)
+	log.Info().Msgf("get user by uuid: %s", userUuidAsString)
 
 	_, err := uuid.Parse(userUuidAsString)
 	if err != nil {
@@ -352,6 +365,18 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @BasePath /api
+// StreamUserEvents godoc
+// @Summary stream user events
+// @Description stream user events
+// @Tags user
+// @Produce text/event-stream
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} sse.Event
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/events/users [get]
 func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
 	v, ok := ctx.Get(UserEventsClientChanContextKey)
 	if !ok {

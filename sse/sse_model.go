@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/rs/zerolog/log"
@@ -32,6 +33,9 @@ type EventStream[T any] struct {
 
 	// Total client connections
 	TotalClients map[Client[T]]bool
+
+	// Active client connections
+	ActiveClients map[uuid.UUID]bool
 }
 
 // It Listens all incoming requests from clients.
@@ -41,19 +45,21 @@ func (stream *EventStream[T]) Listen() {
 		select {
 		// Add new available client
 		case client := <-stream.NewClients:
+			stream.ActiveClients[client.User.Uuid] = true
 			stream.TotalClients[client] = true
-			log.Info().Msgf("Client added. %d registered clients", len(stream.TotalClients))
+			log.Info().Msgf("===== Client added. %d registered clients =====", len(stream.TotalClients))
 
 		// Remove closed client
 		case client := <-stream.ClosedClients:
+			delete(stream.ActiveClients, client.User.Uuid)
 			delete(stream.TotalClients, client)
 			close(client.Channel)
-			log.Info().Msgf("Removed client. %d registered clients", len(stream.TotalClients))
+			log.Info().Msgf("===== Removed client. %d registered clients =====", len(stream.TotalClients))
 
 		// Broadcast message to client
 		case eventMsg := <-stream.Message:
-			for clientMessageChan := range stream.TotalClients {
-				clientMessageChan.Channel <- eventMsg
+			for client, _ := range stream.TotalClients {
+				client.Channel <- eventMsg
 			}
 		}
 	}
@@ -74,22 +80,27 @@ func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.
 			User:    authenticatedUser,
 		}
 
-		// TODO: Check if client already exists
-		_, ok := stream.TotalClients[client]
-		if ok {
-			log.Info().Msgf("Client already exists. %d registered clients", len(stream.TotalClients))
-		}
-
+		// TODO - Handle client connection close properly
+		// Check if client already registered
+		// _, ok := stream.ActiveClients[authenticatedUser.Uuid]
+		// if !ok {
+		// 	// Send new connection to event server
+		// 	stream.NewClients <- client
+		// } else {
+		// 	log.Info().Msgf("===== Client already exists: %s. %d registered clients =====", authenticatedUser.Uuid, len(stream.TotalClients))
+		// }
 		// Send new connection to event server
 		stream.NewClients <- client
 
 		defer func() {
-			// Drain client channel so that it does not block. Server may keep sending messages to this channel
 			go func() {
 				for range client.Channel {
+					// Drain client channel so that it does not block. Server may keep sending messages to this channel
 				}
 			}()
+
 			// Send closed connection to event server
+			log.Info().Msgf("===== Closing client connection for client: %s =====", authenticatedUser.Uuid)
 			stream.ClosedClients <- client
 		}()
 

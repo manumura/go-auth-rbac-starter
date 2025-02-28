@@ -35,7 +35,7 @@ migrate-reset:
 	goose -dir "db/sql/migration" sqlite3 ./demo-auth-rbac.db reset
 
 swagger:
-	swag init
+	swag init -g cmd/main.go --parseDependency
 
 # https://www.alexedwards.net/blog/a-time-saving-makefile-for-your-go-projects
 .PHONY: run test air proto sqlc migrate-status migrate-up migrate-up-by-one migrate-down migrate-version migrate-create migrate-reset swagger

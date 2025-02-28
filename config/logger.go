@@ -23,7 +23,7 @@ func ConfigureLogger(env string) {
 	mw := io.MultiWriter(writers...)
 
 	// zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	log.Logger = zerolog.New(mw).With().Timestamp().Logger()
+	log.Logger = zerolog.New(mw).With().Caller().Timestamp().Logger()
 }
 
 func newRollingFile() (io.Writer, error) {

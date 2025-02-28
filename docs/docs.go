@@ -15,6 +15,53 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/events/users": {
+            "get": {
+                "description": "stream user events",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "stream user events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sse.Event"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/exception.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/forgot-password": {
             "post": {
                 "description": "forgot password",
@@ -243,7 +290,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                            "$ref": "#/definitions/security.AuthenticatedUser"
                         }
                     },
                     "400": {
@@ -814,7 +861,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                            "$ref": "#/definitions/security.AuthenticatedUser"
                         }
                     },
                     "400": {
@@ -858,7 +905,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                            "$ref": "#/definitions/security.AuthenticatedUser"
                         }
                     },
                     "400": {
@@ -1238,7 +1285,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/authentication.AuthenticatedUser"
+                            "$ref": "#/definitions/security.AuthenticatedUser"
                         }
                     },
                     "400": {
@@ -1264,35 +1311,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "authentication.AuthenticatedUser": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "imageId": {
-                    "type": "string"
-                },
-                "imageUrl": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "role": {
-                    "$ref": "#/definitions/role.Role"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
         "authentication.AuthenticationResponse": {
             "type": "object",
             "properties": {
@@ -1380,7 +1398,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 6
+                    "minLength": 5
                 },
                 "password": {
                     "type": "string"
@@ -1503,6 +1521,50 @@ const docTemplate = `{
                 "USER"
             ]
         },
+        "security.AuthenticatedUser": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "imageId": {
+                    "type": "string"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/role.Role"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "sse.Event": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "event": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "retry": {
+                    "type": "integer"
+                }
+            }
+        },
         "user.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -1517,7 +1579,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 6
+                    "minLength": 5
                 },
                 "role": {
                     "$ref": "#/definitions/role.Role"
@@ -1548,7 +1610,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 6
+                    "minLength": 5
                 },
                 "password": {
                     "type": "string"

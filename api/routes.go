@@ -80,6 +80,29 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	adminRoutes.PUT("/v1/users/:uuid", userHandler.UpdateUser)
 	adminRoutes.DELETE("/v1/users/:uuid", userHandler.DeleteUser)
 
+	// TODO remove test
+	// go func() {
+	// 	for {
+	// 		time.Sleep(time.Second * 5)
+	// 		now := time.Now().Format("20060102150405")
+
+	// 		id := fmt.Sprintf("%s-uuid-%s", user.CREATED.String(), now)
+	// 		e := user.UserChangeEvent{
+	// 			Type: user.CREATED,
+	// 			ID:   id,
+	// 			Data: user.UserEventModel{
+	// 				User: user.User{
+	// 					Uuid: uuid.New(),
+	// 					Name: "Test User",
+	// 				},
+	// 				AuditUserUUID: uuid.New(),
+	// 			},
+	// 		}
+	// 		// Send current time to clients message channel
+	// 		userService.PushUserEvent(e)
+	// 	}
+	// }()
+
 	adminRoutes.GET("/v1/events/users",
 		middleware.EventStreamMiddleware(),
 		userService.ManageUserEventsStreamClientsMiddleware(),

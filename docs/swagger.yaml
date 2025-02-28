@@ -1,23 +1,4 @@
 definitions:
-  authentication.AuthenticatedUser:
-    properties:
-      createdAt:
-        type: string
-      imageId:
-        type: string
-      imageUrl:
-        type: string
-      isActive:
-        type: boolean
-      name:
-        type: string
-      role:
-        $ref: '#/definitions/role.Role'
-      updatedAt:
-        type: string
-      uuid:
-        type: string
-    type: object
   authentication.AuthenticationResponse:
     properties:
       accessToken:
@@ -72,7 +53,7 @@ definitions:
         type: string
       name:
         maxLength: 100
-        minLength: 6
+        minLength: 5
         type: string
       password:
         type: string
@@ -158,13 +139,42 @@ definitions:
     x-enum-varnames:
     - ADMIN
     - USER
+  security.AuthenticatedUser:
+    properties:
+      createdAt:
+        type: string
+      imageId:
+        type: string
+      imageUrl:
+        type: string
+      isActive:
+        type: boolean
+      name:
+        type: string
+      role:
+        $ref: '#/definitions/role.Role'
+      updatedAt:
+        type: string
+      uuid:
+        type: string
+    type: object
+  sse.Event:
+    properties:
+      data: {}
+      event:
+        type: string
+      id:
+        type: string
+      retry:
+        type: integer
+    type: object
   user.CreateUserRequest:
     properties:
       email:
         type: string
       name:
         maxLength: 100
-        minLength: 6
+        minLength: 5
         type: string
       role:
         $ref: '#/definitions/role.Role'
@@ -189,7 +199,7 @@ definitions:
         type: string
       name:
         maxLength: 100
-        minLength: 6
+        minLength: 5
         type: string
       password:
         type: string
@@ -224,6 +234,37 @@ definitions:
 info:
   contact: {}
 paths:
+  /v1/events/users:
+    get:
+      description: stream user events
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sse.Event'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/exception.ErrorResponse'
+      summary: stream user events
+      tags:
+      - user
   /v1/forgot-password:
     post:
       consumes:
@@ -373,7 +414,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/authentication.AuthenticatedUser'
+            $ref: '#/definitions/security.AuthenticatedUser'
         "400":
           description: Bad Request
           schema:
@@ -750,7 +791,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/authentication.AuthenticatedUser'
+            $ref: '#/definitions/security.AuthenticatedUser'
         "400":
           description: Bad Request
           schema:
@@ -779,7 +820,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/authentication.AuthenticatedUser'
+            $ref: '#/definitions/security.AuthenticatedUser'
         "400":
           description: Bad Request
           schema:
@@ -1032,7 +1073,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/authentication.AuthenticatedUser'
+            $ref: '#/definitions/security.AuthenticatedUser'
         "400":
           description: Bad Request
           schema:

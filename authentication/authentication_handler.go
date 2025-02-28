@@ -56,7 +56,7 @@ func NewAuthenticationHandler(userService user.UserService, authenticationServic
 // @Accept json
 // @Produce json
 // @Param RegisterRequest body RegisterRequest true "Register Request"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {object} security.AuthenticatedUser
 // @Failure 400 {object} exception.ErrorResponse
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/register [post]
@@ -162,6 +162,12 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
+	if !u.UserCredentials.IsEmailVerified {
+		log.Error().Msg("email is not verified")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrEmailNotVerified, http.StatusUnauthorized))
+		return
+	}
+
 	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
@@ -255,7 +261,7 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 
 	cookie.DeleteAuthCookies(ctx)
 	log.Info().Msgf("user %s logged out", authenticatedUser.Uuid)
-	ctx.JSON(http.StatusOK, authenticatedUser)
+	ctx.JSON(http.StatusNoContent, nil)
 }
 
 // @BasePath /api

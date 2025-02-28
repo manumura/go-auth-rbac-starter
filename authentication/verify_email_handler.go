@@ -34,7 +34,7 @@ func NewVerifyEmailHandler(service VerifyEmailService, config config.Config, val
 // @Accept json
 // @Produce json
 // @Param VerifyEmailRequest body VerifyEmailRequest true "Verify Email Request"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {object} security.AuthenticatedUser
 // @Failure 400 {object} exception.ErrorResponse
 // @Failure 404 {object} exception.ErrorResponse
 // @Failure 500 {object} exception.ErrorResponse

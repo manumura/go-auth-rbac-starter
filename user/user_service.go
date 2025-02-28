@@ -399,6 +399,7 @@ func newEventStream() (event *sse.EventStream[UserChangeEvent]) {
 		NewClients:    make(chan sse.Client[UserChangeEvent]),
 		ClosedClients: make(chan sse.Client[UserChangeEvent]),
 		TotalClients:  make(map[sse.Client[UserChangeEvent]]bool),
+		ActiveClients: make(map[uuid.UUID]bool),
 	}
 
 	go event.Listen()

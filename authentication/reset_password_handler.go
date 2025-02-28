@@ -86,7 +86,7 @@ func (h *ResetPasswordHandler) ForgotPassword(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param token path string true "token"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {object} security.AuthenticatedUser
 // @Failure 400 {object} exception.ErrorResponse
 // @Failure 404 {object} exception.ErrorResponse
 // @Failure 500 {object} exception.ErrorResponse
@@ -125,7 +125,7 @@ func (h *ResetPasswordHandler) GetUserByToken(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param ResetPasswordRequest body ResetPasswordRequest true "Reset Password Request"
-// @Success 200 {object} AuthenticatedUser
+// @Success 200 {object} security.AuthenticatedUser
 // @Failure 400 {object} exception.ErrorResponse
 // @Failure 404 {object} exception.ErrorResponse
 // @Failure 500 {object} exception.ErrorResponse
