@@ -74,10 +74,10 @@ func (d *Database) Connect() error {
 	// - Set WAL mode (not strictly necessary each time because it's persisted in the database, but good for first run)
 	// - Set busy timeout, so concurrent writers wait on each other instead of erroring immediately
 	// - Enable foreign key checks
-	log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
-	url := d.config.DatabaseUrl + "?_journal=WAL&_timeout=5000&_fk=true"
-	// log.Info().Msgf("connecting to database at: %s", d.config.TursoDatabaseUrl)
-	// url := d.config.TursoDatabaseUrl + "?authToken=" + d.config.TursoAuthToken
+	// log.Info().Msgf("connecting to database at: %s", d.config.DatabaseUrl)
+	// url := d.config.DatabaseUrl + "?_journal=WAL&_timeout=5000&_fk=true"
+	log.Info().Msgf("connecting to database at: %s", d.config.TursoDatabaseUrl)
+	url := d.config.TursoDatabaseUrl + "?authToken=" + d.config.TursoAuthToken
 	db, err := sql.Open("libsql", url)
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func (d *Database) Connect() error {
 		if dbError == nil {
 			break
 		}
-		log.Info().Msgf("cannot connect to db (%d): %s\n", attempt, dbError)
+		log.Info().Msgf("cannot connect to db %s (%d): %s\n", url, attempt, dbError)
 		// sleep with exponential backoff
 		time.Sleep(time.Duration(attempt*attempt) * time.Second)
 	}
