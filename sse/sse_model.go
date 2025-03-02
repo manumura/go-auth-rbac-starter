@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/rs/zerolog/log"
@@ -33,9 +32,6 @@ type EventStream[T any] struct {
 
 	// Total client connections
 	TotalClients map[Client[T]]bool
-
-	// Active client connections
-	ActiveClients map[uuid.UUID]bool
 }
 
 // It Listens all incoming requests from clients.
@@ -45,13 +41,11 @@ func (stream *EventStream[T]) Listen() {
 		select {
 		// Add new available client
 		case client := <-stream.NewClients:
-			stream.ActiveClients[client.User.Uuid] = true
 			stream.TotalClients[client] = true
 			log.Info().Msgf("===== Client added. %d registered clients =====", len(stream.TotalClients))
 
 		// Remove closed client
 		case client := <-stream.ClosedClients:
-			delete(stream.ActiveClients, client.User.Uuid)
 			delete(stream.TotalClients, client)
 			close(client.Channel)
 			log.Info().Msgf("===== Removed client. %d registered clients =====", len(stream.TotalClients))
@@ -80,16 +74,7 @@ func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.
 			User:    authenticatedUser,
 		}
 
-		// TODO - Handle client connection close properly
-		// Check if client already registered
-		// _, ok := stream.ActiveClients[authenticatedUser.Uuid]
-		// if !ok {
-		// 	// Send new connection to event server
-		// 	stream.NewClients <- client
-		// } else {
-		// 	log.Info().Msgf("===== Client already exists: %s. %d registered clients =====", authenticatedUser.Uuid, len(stream.TotalClients))
-		// }
-		// Send new connection to event server
+		// Add client to event server
 		stream.NewClients <- client
 
 		defer func() {

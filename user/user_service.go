@@ -219,7 +219,7 @@ func (service *UserServiceImpl) CountAll(ctx context.Context, p CountUsersParams
 func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (UserEntity, error) {
 	u, err := service.datastore.GetUserByEmail(ctx, email)
 	if err != nil {
-		log.Error().Err(err).Msgf("user not found with email %s", email)
+		log.Error().Err(err).Msgf("user not found with email: %s", email)
 		return UserEntity{}, err
 	}
 
@@ -229,7 +229,7 @@ func (service *UserServiceImpl) GetByEmail(ctx context.Context, email string) (U
 func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (UserEntity, error) {
 	u, err := service.datastore.GetUserByID(ctx, id)
 	if err != nil {
-		log.Error().Err(err).Msgf("user not found with id %d", id)
+		log.Error().Err(err).Msgf("user not found with id: %d", id)
 		return UserEntity{}, err
 	}
 
@@ -239,7 +239,7 @@ func (service *UserServiceImpl) GetByID(ctx context.Context, id int64) (UserEnti
 func (service *UserServiceImpl) GetByUUID(ctx context.Context, uuid string) (UserEntity, error) {
 	u, err := service.datastore.GetUserByUUID(ctx, uuid)
 	if err != nil {
-		log.Error().Err(err).Msgf("user not found with UUID %s", uuid)
+		log.Error().Err(err).Msgf("user not found with UUID: %s", uuid)
 		return UserEntity{}, err
 	}
 
@@ -276,14 +276,14 @@ func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p
 
 		u, err := service.datastore.GetUserByUUID(ctx, uuid)
 		if err != nil {
-			log.Error().Err(err).Msgf("user not found with UUID %s", uuid)
+			log.Error().Err(err).Msgf("user not found with UUID: %s", uuid)
 			return err
 		}
 
 		uup := getUpdateUserParams(p)
 
 		if uup.Name.Valid || uup.RoleID.Valid || uup.IsActive.Valid {
-			log.Info().Msgf("updating user with UUID %s", uuid)
+			log.Info().Msgf("updating user with UUID: %s", uuid)
 			uup.Uuid = uuid
 			uup.UpdatedAt = sql.NullString{String: nowAsString, Valid: true}
 
@@ -301,7 +301,7 @@ func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p
 		}
 
 		if uucp.Email.Valid || uucp.Password.Valid {
-			log.Info().Msgf("updating user credentials with user ID %d", u.ID)
+			log.Info().Msgf("updating user credentials with user ID: %d", u.ID)
 			uucp.UserID = u.ID
 
 			_, err = service.datastore.UpdateUserCredentials(ctx, uucp)
@@ -311,7 +311,7 @@ func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p
 			}
 		}
 
-		log.Info().Msgf("user with UUID updated %s", u.Uuid)
+		log.Info().Msgf("updated user with UUID: %s", u.Uuid)
 		user = GetUserByUUIDRowToUserEntity(u)
 		return nil
 	})
@@ -399,7 +399,6 @@ func newEventStream() (event *sse.EventStream[UserChangeEvent]) {
 		NewClients:    make(chan sse.Client[UserChangeEvent]),
 		ClosedClients: make(chan sse.Client[UserChangeEvent]),
 		TotalClients:  make(map[sse.Client[UserChangeEvent]]bool),
-		ActiveClients: make(map[uuid.UUID]bool),
 	}
 
 	go event.Listen()
