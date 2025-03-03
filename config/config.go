@@ -15,14 +15,14 @@ type Config struct {
 }
 
 type envCongig struct {
-	Environment                  string `env:"ENV" validate:"required"`
-	IdTokenKeyAsBase64           string `env:"ID_TOKEN_PRIVATE_KEY_AS_BASE64" validate:"required"`
-	CORSAllowedOrigins           string `env:"CORS_ALLOWED_ORIGNS" validate:"required"`
-	GoogleClientId               string `env:"GOOGLE_CLIENT_ID" validate:"required"`
-	RecaptchaSecretKey           string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
-	SmtpUser                     string `env:"SMTP_USER" validate:"required"`
-	SmtpPassword                 string `env:"SMTP_PASSWORD" validate:"required"`
-	DatabaseUrl                  string `env:"DATABASE_URL" validate:"required"`
+	Environment        string `env:"ENV" validate:"required"`
+	IdTokenKeyAsBase64 string `env:"ID_TOKEN_PRIVATE_KEY_AS_BASE64" validate:"required"`
+	CORSAllowedOrigins string `env:"CORS_ALLOWED_ORIGNS" validate:"required"`
+	GoogleClientId     string `env:"GOOGLE_CLIENT_ID" validate:"required"`
+	RecaptchaSecretKey string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
+	SmtpUser           string `env:"SMTP_USER" validate:"required"`
+	SmtpPassword       string `env:"SMTP_PASSWORD" validate:"required"`
+	// DatabaseUrl                  string `env:"DATABASE_URL" validate:"required"`
 	TursoDatabaseUrl             string `env:"TURSO_DATABASE_URL" validate:"required"`
 	TursoAuthToken               string `env:"TURSO_AUTH_TOKEN" validate:"required"`
 	AwsRegion                    string `env:"AWS_REGION" validate:"required"`

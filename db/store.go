@@ -89,7 +89,7 @@ func (d *Database) Connect() error {
 		if dbError == nil {
 			break
 		}
-		log.Info().Msgf("cannot connect to db %s (%d): %s\n", url, attempt, dbError)
+		log.Info().Msgf("cannot connect to db %s (attempt #%d): %s\n", url, attempt, dbError)
 		// sleep with exponential backoff
 		time.Sleep(time.Duration(attempt*attempt) * time.Second)
 	}
