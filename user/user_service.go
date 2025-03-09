@@ -392,13 +392,13 @@ func (service *UserServiceImpl) ManageUserEventsStreamClientsMiddleware() gin.Ha
 	return service.userEventsStream.ManageClientsMiddleware(UserEventsClientChanContextKey)
 }
 
-// Initialize event and Start procnteessing requests
+// Initialize event and Start processing requests
 func newEventStream() (event *sse.EventStream[UserChangeEvent]) {
 	event = &sse.EventStream[UserChangeEvent]{
 		Message:       make(chan UserChangeEvent),
 		NewClients:    make(chan sse.Client[UserChangeEvent]),
 		ClosedClients: make(chan sse.Client[UserChangeEvent]),
-		TotalClients:  make(map[sse.Client[UserChangeEvent]]bool),
+		ActiveClients: make(map[uuid.UUID]sse.Client[UserChangeEvent]),
 	}
 
 	go event.Listen()
