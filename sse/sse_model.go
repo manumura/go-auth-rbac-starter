@@ -53,7 +53,7 @@ func (stream *EventStream[T]) Listen() {
 
 		// Broadcast message to client
 		case eventMsg := <-stream.Message:
-			log.Info().Msgf("===== Broadcasting message to %d clients: %v =====", len(stream.ActiveClients), eventMsg)
+			log.Info().Msgf("===== Broadcasting message to %d client(s): %v =====", len(stream.ActiveClients), eventMsg)
 			for _, client := range stream.ActiveClients {
 				client.Channel <- eventMsg
 			}

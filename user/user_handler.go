@@ -393,7 +393,7 @@ func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
 	ctx.Stream(func(w io.Writer) bool {
 		// Stream message to client from message channel
 		if event, ok := <-client.Channel; ok {
-			log.Info().Msgf("===== Streaming event: %v =====", event)
+			log.Info().Msgf("===== Streaming event [%s] to user: %s =====", event.ID, client.User.Uuid)
 			// ctx.SSEvent("event", event)
 			sse.RenderSSEvent(ctx, event.Type.String(), event.ID, event.Data)
 			return true
