@@ -72,7 +72,9 @@ func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.
 		var client Client[T]
 		client, ok := stream.ActiveClients[authenticatedUser.Uuid]
 
-		if !ok {
+		if ok {
+			log.Warn().Msgf("===== Client already exists for user: %s =====", authenticatedUser.Uuid)
+		} else {
 			// Initialize client channel
 			c := make(chan T)
 			client = Client[T]{
@@ -91,7 +93,7 @@ func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.
 				}()
 
 				// Send closed connection to event server
-				log.Info().Msgf("===== Closing client connection for client: %s =====", authenticatedUser.Uuid)
+				log.Info().Msgf("===== Closing client connection for user: %s =====", authenticatedUser.Uuid)
 				stream.ClosedClients <- client
 			}()
 		}
