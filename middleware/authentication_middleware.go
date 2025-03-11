@@ -59,7 +59,7 @@ func AuthMiddleware(authenticationService authentication.AuthenticationService, 
 		}
 
 		authenticatedUser := user.ToAuthenticatedUser(u)
-		log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
+		// log.Info().Msgf("authenticated user: %s", authenticatedUser.Uuid)
 		ctx.Set(security.AuthenticatedUserContextKey, authenticatedUser)
 		ctx.Next()
 	}
