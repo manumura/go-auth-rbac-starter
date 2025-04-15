@@ -124,7 +124,7 @@ type UserChangeEvent struct {
 	ID    string              `json:"id"`
 	Type  UserChangeEventType `json:"type"`
 	Retry int                 `json:"retry"`
-	Data  UserEventModel      `json:"data"`
+	Data  UserEventPayload    `json:"data"`
 }
 
 func NewUserChangeEvent(t UserChangeEventType, user User, auditUserUuid uuid.UUID) UserChangeEvent {
@@ -134,14 +134,14 @@ func NewUserChangeEvent(t UserChangeEventType, user User, auditUserUuid uuid.UUI
 	return UserChangeEvent{
 		ID:   id,
 		Type: t,
-		Data: UserEventModel{
+		Data: UserEventPayload{
 			User:          user,
 			AuditUserUUID: auditUserUuid,
 		},
 	}
 }
 
-type UserEventModel struct {
+type UserEventPayload struct {
 	User          User      `json:"user"`
 	AuditUserUUID uuid.UUID `json:"auditUserUuid"`
 }

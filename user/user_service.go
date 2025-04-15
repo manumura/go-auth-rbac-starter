@@ -3,15 +3,19 @@ package user
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
 	"github.com/manumura/go-auth-rbac-starter/role"
+	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/sse"
+	"github.com/manumura/go-auth-rbac-starter/ws"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -35,11 +39,13 @@ type UserService interface {
 	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
 	PushUserEvent(event UserChangeEvent)
 	ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc
+	GetUserEvents(upgrader websocket.Upgrader) gin.HandlerFunc
 }
 
 type UserServiceImpl struct {
 	datastore        db.DataStore
 	userEventsStream *sse.EventStream[UserChangeEvent]
+	userEventsHub    *ws.Hub
 }
 
 func NewUserService(datastore db.DataStore) UserService {
@@ -50,10 +56,12 @@ func NewUserService(datastore db.DataStore) UserService {
 	oauthProviderService.InitProvidersMaps(context.Background())
 
 	userEventsStream := newEventStream()
+	userEventsHub := ws.NewHub()
 
 	return &UserServiceImpl{
 		datastore:        datastore,
 		userEventsStream: userEventsStream,
+		userEventsHub:    userEventsHub,
 	}
 }
 
@@ -386,6 +394,13 @@ func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, 
 
 func (service *UserServiceImpl) PushUserEvent(event UserChangeEvent) {
 	service.userEventsStream.Message <- event
+
+	eventAsString, err := json.Marshal(event)
+	if err != nil {
+		log.Error().Err(err).Msg("marshal error")
+		return
+	}
+	service.userEventsHub.Broadcast <- eventAsString
 }
 
 func (service *UserServiceImpl) ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc {
@@ -404,4 +419,28 @@ func newEventStream() (event *sse.EventStream[UserChangeEvent]) {
 	go event.Listen()
 
 	return
+}
+
+func (service *UserServiceImpl) GetUserEvents(upgrader websocket.Upgrader) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		u, err := security.GetUserFromContext(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("get user from context error")
+			return
+		}
+
+		w, r := ctx.Writer, ctx.Request
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Error().Err(err).Msg("websocket upgrade error")
+			return
+		}
+
+		client := &ws.Client{Hub: service.userEventsHub, Conn: conn, Send: make(chan []byte, 256), UserUuid: u.Uuid}
+		client.Hub.Register <- client
+
+		// Allow collection of memory referenced by the caller by doing all work in
+		// new goroutines.
+		go client.WritePump()
+	}
 }
