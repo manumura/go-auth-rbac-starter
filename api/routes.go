@@ -1,15 +1,12 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
 	"github.com/manumura/go-auth-rbac-starter/captcha"
@@ -92,6 +89,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	// 		time.Sleep(time.Second * 5)
 	// 		now := time.Now().Format("20060102150405")
 	// 		id := fmt.Sprintf("%s-uuid-%s", user.CREATED.String(), now)
+	// 		email := "test@test.com"
 	// 		e := user.UserChangeEvent{
 	// 			Type: user.CREATED,
 	// 			ID:   id,
@@ -99,6 +97,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	// 				User: user.User{
 	// 					Uuid: uuid.New(),
 	// 					Name: "Test User",
+	// 					Email: &email,
 	// 				},
 	// 				AuditUserUUID: uuid.New(),
 	// 			},
@@ -117,33 +116,33 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			// TODO test
 			return slices.Contains(allowedOrigins, r.Header.Get("Origin"))
 		},
 	}
-	adminRoutes.GET("/v1/ws/events/users", userService.GetUserEvents(upgrader))
+	adminRoutes.GET("/v1/ws/events/users", userHandler.HandleUserEvents(upgrader))
 
 	// TODO remove test for ws
-	go func() {
-		for {
-			time.Sleep(time.Second * 5)
-			now := time.Now().Format("20060102150405")
-			id := fmt.Sprintf("%s-uuid-%s", user.CREATED.String(), now)
-			e := user.UserChangeEvent{
-				Type: user.CREATED,
-				ID:   id,
-				Data: user.UserEventPayload{
-					User: user.User{
-						Uuid: uuid.New(),
-						Name: "Test User",
-					},
-					AuditUserUUID: uuid.New(),
-				},
-			}
-
-			userService.PushUserEvent(e)
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		time.Sleep(time.Second * 5)
+	// 		now := time.Now().Format("20060102150405")
+	// 		id := fmt.Sprintf("%s-uuid-%s", user.CREATED.String(), now)
+	// 		email := "test@test.com"
+	// 		e := user.UserChangeEvent{
+	// 			Type: user.CREATED,
+	// 			ID:   id,
+	// 			Data: user.UserEventPayload{
+	// 				User: user.User{
+	// 					Uuid:  uuid.New(),
+	// 					Name:  "Test User",
+	// 					Email: &email,
+	// 				},
+	// 				AuditUserUUID: uuid.New(),
+	// 			},
+	// 		}
+	// 		userService.PushUserEvent(e)
+	// 	}
+	// }()
 
 	if config.Environment != "prod" {
 		docs.SwaggerInfo.BasePath = prefix

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
@@ -400,4 +401,10 @@ func (h *UserHandler) StreamUserEvents(ctx *gin.Context) {
 		}
 		return false
 	})
+}
+
+func (h *UserHandler) HandleUserEvents(upgrader websocket.Upgrader) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		h.SubscribeToUserEvents(ctx, upgrader)
+	}
 }

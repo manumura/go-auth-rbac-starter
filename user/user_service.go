@@ -39,7 +39,7 @@ type UserService interface {
 	IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error)
 	PushUserEvent(event UserChangeEvent)
 	ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc
-	GetUserEvents(upgrader websocket.Upgrader) gin.HandlerFunc
+	SubscribeToUserEvents(ctx *gin.Context, upgrader websocket.Upgrader)
 }
 
 type UserServiceImpl struct {
@@ -392,17 +392,6 @@ func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, 
 	return false, nil
 }
 
-func (service *UserServiceImpl) PushUserEvent(event UserChangeEvent) {
-	service.userEventsStream.Message <- event
-
-	eventAsString, err := json.Marshal(event)
-	if err != nil {
-		log.Error().Err(err).Msg("marshal error")
-		return
-	}
-	service.userEventsHub.Broadcast <- eventAsString
-}
-
 func (service *UserServiceImpl) ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc {
 	return service.userEventsStream.ManageClientsMiddleware(UserEventsClientChanContextKey)
 }
@@ -421,26 +410,37 @@ func newEventStream() (event *sse.EventStream[UserChangeEvent]) {
 	return
 }
 
-func (service *UserServiceImpl) GetUserEvents(upgrader websocket.Upgrader) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		u, err := security.GetUserFromContext(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("get user from context error")
-			return
-		}
+func (service *UserServiceImpl) PushUserEvent(event UserChangeEvent) {
+	// SSE
+	service.userEventsStream.Message <- event
 
-		w, r := ctx.Writer, ctx.Request
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Error().Err(err).Msg("websocket upgrade error")
-			return
-		}
-
-		client := &ws.Client{Hub: service.userEventsHub, Conn: conn, Send: make(chan []byte, 256), UserUuid: u.Uuid}
-		client.Hub.Register <- client
-
-		// Allow collection of memory referenced by the caller by doing all work in
-		// new goroutines.
-		go client.WritePump()
+	// WebSocket
+	eventAsString, err := json.Marshal(event)
+	if err != nil {
+		log.Error().Err(err).Msg("marshal error")
+		return
 	}
+	service.userEventsHub.Broadcast <- eventAsString
+}
+
+func (service *UserServiceImpl) SubscribeToUserEvents(ctx *gin.Context, upgrader websocket.Upgrader) {
+	u, err := security.GetUserFromContext(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("get user from context error")
+		return
+	}
+
+	w, r := ctx.Writer, ctx.Request
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("websocket upgrade error")
+		return
+	}
+
+	client := &ws.Client{Hub: service.userEventsHub, Conn: conn, Send: make(chan []byte, 256), UserUuid: u.Uuid}
+	client.Hub.Register <- client
+
+	// Allow collection of memory referenced by the caller by doing all work in
+	// new goroutines.
+	go client.WritePump()
 }

@@ -43,17 +43,17 @@ func (stream *EventStream[T]) Listen() {
 		// Add new available client
 		case client := <-stream.NewClients:
 			stream.ActiveClients[client.User.Uuid] = client
-			log.Info().Msgf("===== Client added. %d registered clients =====", len(stream.ActiveClients))
+			log.Warn().Msgf("===== new client added. %d registered clients =====", len(stream.ActiveClients))
 
 		// Remove closed client
 		case client := <-stream.ClosedClients:
 			delete(stream.ActiveClients, client.User.Uuid)
 			close(client.Channel)
-			log.Info().Msgf("===== Removed client. %d registered clients =====", len(stream.ActiveClients))
+			log.Warn().Msgf("===== closed client. %d registered clients =====", len(stream.ActiveClients))
 
 		// Broadcast message to client
 		case eventMsg := <-stream.Message:
-			log.Info().Msgf("===== Broadcasting message to %d client(s): %v =====", len(stream.ActiveClients), eventMsg)
+			log.Info().Msgf("===== broadcasting message to %d client(s): %v =====", len(stream.ActiveClients), eventMsg)
 			for _, client := range stream.ActiveClients {
 				client.Channel <- eventMsg
 			}
@@ -73,7 +73,7 @@ func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.
 		client, ok := stream.ActiveClients[authenticatedUser.Uuid]
 
 		if ok {
-			log.Warn().Msgf("===== Client already exists for user: %s =====", authenticatedUser.Uuid)
+			log.Warn().Msgf("===== client already exists for user UUID : %s =====", authenticatedUser.Uuid)
 		} else {
 			// Initialize client channel
 			c := make(chan T)
@@ -93,13 +93,12 @@ func (stream *EventStream[T]) ManageClientsMiddleware(clientChanKey string) gin.
 				}()
 
 				// Send closed connection to event server
-				log.Info().Msgf("===== Closing client connection for user: %s =====", authenticatedUser.Uuid)
+				log.Info().Msgf("===== closing client connection for user UUID : %s =====", authenticatedUser.Uuid)
 				stream.ClosedClients <- client
 			}()
 		}
 
 		ctx.Set(clientChanKey, client)
-
 		ctx.Next()
 	}
 }

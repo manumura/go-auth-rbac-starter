@@ -76,14 +76,12 @@ func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.Register:
-			log.Info().Msgf("new client registered with user UUID %s [%s]", client.UserUuid, client.Conn.RemoteAddr())
-			// TODO check if client already registered ?
 			h.Clients[client] = true
+			log.Warn().Msgf("===== new client registered with user UUID %s [%s]. %d registered clients =====", client.UserUuid, client.Conn.RemoteAddr(), len(h.Clients))
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
-				// TODO test unregister
-				log.Info().Msgf("unregister client %s [%s]", client.UserUuid, client.Conn.RemoteAddr())
 				delete(h.Clients, client)
+				log.Warn().Msgf("===== unregister client %s [%s]. %d registered clients =====", client.UserUuid, client.Conn.RemoteAddr(), len(h.Clients))
 				close(client.Send)
 			}
 		case message := <-h.Broadcast:
@@ -107,6 +105,7 @@ func (h *Hub) run() {
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		log.Info().Msgf("===== closing client connection for user UUID : %s =====", c.UserUuid)
 		ticker.Stop()
 		c.Hub.Unregister <- c
 		c.Conn.Close()
