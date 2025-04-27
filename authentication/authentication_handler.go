@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -20,6 +22,8 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/user"
 	"github.com/rs/zerolog/log"
+
+	"golang.org/x/oauth2"
 )
 
 type AuthenticationHandler struct {
@@ -36,6 +40,17 @@ type authenticationToken struct {
 	RefreshToken          string
 	AccessTokenExpiresAt  time.Time
 	RefreshTokenExpiresAt time.Time
+}
+
+const (
+	FacebookAuthURL    = "https://www.facebook.com/v22.0/dialog/oauth"
+	FacebookTokenURL   = "https://graph.facebook.com/v22.0/oauth/access_token"
+	FacebookProfileURL = "https://graph.facebook.com/v22.0/me"
+)
+
+var FacebookEndpoint = oauth2.Endpoint{
+	AuthURL:  FacebookAuthURL,
+	TokenURL: FacebookTokenURL,
 }
 
 func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, emailService message.EmailService, config config.Config, validate *validator.Validate) AuthenticationHandler {
@@ -269,31 +284,73 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 // @Summary facebook login
 // @Description facebook login
 // @Tags authentication
-// @Accept json
-// @Produce json
-// @Param Oauth2FacebookLoginRequest body Oauth2FacebookLoginRequest true "Oauth2 Facebook Login Request"
+// @Success 307
+// @Failure 400 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/oauth2/facebook [get]
+func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
+	oAuth2Config := h.getFacebookOauth2Config()
+
+	// TODO
+	// randomOAuthStateString := uuid.New().String()
+	randomOAuthStateString := "test"
+	url := oAuth2Config.AuthCodeURL(randomOAuthStateString)
+	fmt.Println("url", url)
+	ctx.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+// @BasePath /api
+// Oauth2FacebookLoginCallback godoc
+// @Summary facebook login callback
+// @Description facebook login callback
+// @Tags authentication
 // @Success 200 {object} AuthenticationResponse
 // @Failure 400 {object} exception.ErrorResponse
-// @Failure 401 {object} exception.ErrorResponse
-// @Failure 404 {object} exception.ErrorResponse
 // @Failure 500 {object} exception.ErrorResponse
-// @Router /v1/oauth2/facebook [post]
-func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
-	var req Oauth2FacebookLoginRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+// @Router /v1/oauth2/facebook/callback [get]
+func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
+	code := ctx.Query("code")
+	state := ctx.Query("state")
+	errorResponse := ctx.Query("error")
+	errorReason := ctx.Query("error_reason")
+	errorDescription := ctx.Query("error_description")
+
+	if errorResponse != "" {
+		log.Error().Msgf("error: %s, error_reason: %s, error_description: %s", errorResponse, errorReason, errorDescription)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
-	// returns nil or ValidationErrors ( []FieldError )
-	err := h.Validate.Struct(req)
-	if err != nil {
-		log.Error().Err(err).Msg("invalid request")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
+	if code == "" {
+		log.Error().Msg("code is empty")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
 
-	authResponse, authenticatedUser, err := h.authenticate(req.ID, oauthprovider.FACEBOOK, req.Name, req.Email, ctx)
+	// TODO
+	randomOAuthStateString := "test"
+	if state != randomOAuthStateString {
+		log.Error().Msg("invalid oauth state")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	oAuth2Config := h.getFacebookOauth2Config()
+	token, err := oAuth2Config.Exchange(ctx, code)
+	if err != nil || token == nil {
+		log.Error().Err(err).Msg("failed to exchange token")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	fbUserDetails, fbUserDetailsError := getUserInfoFromFacebook(token.AccessToken)
+	if fbUserDetailsError != nil {
+		log.Error().Err(fbUserDetailsError).Msg("failed to get user details from facebook")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		return
+	}
+
+	authResponse, authenticatedUser, err := h.authenticate(fbUserDetails.ID, oauthprovider.FACEBOOK, fbUserDetails.Name, fbUserDetails.Email, ctx)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == exception.ErrLogin {
@@ -310,7 +367,42 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 		IdToken:              authResponse.IdToken,
 	})
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
-	ctx.JSON(http.StatusOK, authResponse)
+	// ctx.JSON(http.StatusOK, authResponse)
+
+	url := h.Config.ClientAppUrl + "/oauth/facebook/callback?access_token=" + authResponse.AccessToken + "&refresh_token=" + authResponse.RefreshToken + "&id_token=" + authResponse.IdToken + "&expires_at=" + authResponse.AccessTokenExpiresAt.Format(time.RFC1123) + "&token_type=Bearer"
+	ctx.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func (h *AuthenticationHandler) getFacebookOauth2Config() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     h.Config.FacebookAppId,
+		ClientSecret: h.Config.FacebookAppSecret,
+		RedirectURL:  h.Config.FacebookRedirectUrl,
+		Endpoint:     FacebookEndpoint,
+		Scopes:       []string{"email", "public_profile"},
+	}
+}
+
+func getUserInfoFromFacebook(token string) (FacebookUserDetails, error) {
+	var fbUserDetails FacebookUserDetails
+	req, err := http.NewRequest("GET", FacebookProfileURL+"?fields=id,name,email,picture&access_token="+token, nil)
+	if err != nil {
+		return FacebookUserDetails{}, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return FacebookUserDetails{}, err
+	}
+	defer res.Body.Close()
+
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(&fbUserDetails)
+	if err != nil {
+		return FacebookUserDetails{}, err
+	}
+
+	return fbUserDetails, nil
 }
 
 // @BasePath /api

@@ -10,7 +10,7 @@ logs
 
 *.env*
 !.env.template
-config.yaml
+config*.yaml
 
 .history/
 tmp/

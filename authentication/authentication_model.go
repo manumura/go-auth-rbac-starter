@@ -16,11 +16,10 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type Oauth2FacebookLoginRequest struct {
-	ID    string `json:"id" validate:"required"`
-	Email string `json:"email" validate:"required,email"`
-	Name  string `json:"name" validate:"required"`
-	// Picture string `json:"picture"`
+type FacebookUserDetails struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 type Oauth2GoogleLoginRequest struct {
