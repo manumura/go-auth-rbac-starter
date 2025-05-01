@@ -29,6 +29,11 @@ type envCongig struct {
 	// DatabaseUrl                  string `env:"DATABASE_URL" validate:"required"`
 	TursoDatabaseUrl             string `env:"TURSO_DATABASE_URL" validate:"required"`
 	TursoAuthToken               string `env:"TURSO_AUTH_TOKEN" validate:"required"`
+	RedisHost                    string `env:"REDIS_HOST" validate:"required"`
+	RedisPort                    int    `env:"REDIS_PORT" validate:"required"`
+	RedisUsername                string `env:"REDIS_USERNAME"`
+	RedisPassword                string `env:"REDIS_PASSWORD"`
+	RedisUseTLS                  bool   `env:"REDIS_USE_TLS"`
 	AwsRegion                    string `env:"AWS_REGION" validate:"required"`
 	AwsAccessKeyId               string `env:"AWS_ACCESS_KEY_ID" validate:"required"`
 	AwsSecretAccessKey           string `env:"AWS_SECRET_ACCESS_KEY" validate:"required"`

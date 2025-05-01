@@ -7,14 +7,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/manumura/go-auth-rbac-starter/api"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/db"
+	"github.com/manumura/go-auth-rbac-starter/redis"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
+
+	goRedis "github.com/redis/go-redis/v9"
 )
 
 var interruptSignals = []os.Signal{
@@ -45,6 +49,8 @@ func main() {
 	}
 }
 
+// TODO generate password UUID no dash
+// TODO rate limit middleware
 // https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), interruptSignals...)
@@ -78,7 +84,36 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		return err
 	}
 
-	runHttpServer(ctx, waitGroup, config, datastore, validate)
+	redisClient := redis.NewRedisClient(redis.RedisOptions{
+		Address:  config.RedisHost + ":" + strconv.Itoa(config.RedisPort),
+		Username: config.RedisUsername,
+		Password: config.RedisPassword,
+		UseTLS:   config.RedisUseTLS,
+	})
+
+	err = redisClient.Conn().Ping(ctx).Err()
+	if err != nil {
+		log.Error().Err(err).Msg("cannot ping redis")
+		return err
+	}
+
+	// TODO
+	// err = rdb.Set(ctx, "key", "value", 0).Err()
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("cannot set key in redis")
+	// 	panic(err)
+	// }
+
+	// val, err := rdb.Get(ctx, "key").Result()
+	// if err == redis.Nil {
+	// 	fmt.Println("key does not exist")
+	// } else if err != nil {
+	// 	log.Error().Err(err).Msg("cannot get key from redis")
+	// 	panic(err)
+	// }
+	// fmt.Println("key", val)
+
+	runHttpServer(ctx, waitGroup, config, datastore, redisClient, validate)
 
 	err = waitGroup.Wait()
 	if err != nil {
@@ -90,9 +125,12 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 }
 
 func runHttpServer(ctx context.Context,
-	waitGroup *errgroup.Group, config config.Config, dataStore db.DataStore,
+	waitGroup *errgroup.Group, 
+	config config.Config, 
+	dataStore db.DataStore, 
+	redisClient *goRedis.Client, 
 	validate *validator.Validate) {
-	server, err := api.NewHttpServer(config, dataStore, validate)
+	server, err := api.NewHttpServer(config, dataStore, redisClient, validate)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create HTTP server")
 	}

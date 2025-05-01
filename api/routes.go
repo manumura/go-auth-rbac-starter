@@ -30,7 +30,7 @@ const (
 
 func (server *HttpServer) SetupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
 	userService := user.NewUserService(server.datastore)
-	authenticationService := authentication.NewAuthenticationService(server.datastore)
+	authenticationService := authentication.NewAuthenticationService(server.datastore, server.redisClient)
 	verifyEmailService := authentication.NewVerifyEmailService(server.datastore, userService)
 	resetPasswordService := authentication.NewResetPasswordService(server.datastore, userService)
 	storageService := storage.NewStorageService()

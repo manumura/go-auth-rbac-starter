@@ -292,7 +292,8 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	oAuth2Config := h.getFacebookOauth2Config()
 
 	// TODO
-	// randomOAuthStateString := uuid.New().String()
+	// uuid := uuid.New().String()
+	// randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
 	randomOAuthStateString := "test"
 	url := oAuth2Config.AuthCodeURL(randomOAuthStateString)
 	fmt.Println("url", url)

@@ -21,6 +21,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/pressly/goose/v3 v3.24.2
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.20.1
 	github.com/swaggo/files v1.0.1
@@ -58,8 +59,10 @@ require (
 	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/coder/websocket v1.8.13 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect

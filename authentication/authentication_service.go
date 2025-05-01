@@ -6,6 +6,8 @@ import (
 
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/rs/zerolog/log"
+
+	goRedis "github.com/redis/go-redis/v9"
 )
 
 type AuthenticationService interface {
@@ -17,11 +19,13 @@ type AuthenticationService interface {
 
 type AuthenticationServiceImpl struct {
 	datastore db.DataStore
+	redisClient *goRedis.Client
 }
 
-func NewAuthenticationService(datastore db.DataStore) AuthenticationService {
+func NewAuthenticationService(datastore db.DataStore, redisClient *goRedis.Client) AuthenticationService {
 	return &AuthenticationServiceImpl{
 		datastore: datastore,
+		redisClient: redisClient,
 	}
 }
 
