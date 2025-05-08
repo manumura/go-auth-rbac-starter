@@ -50,7 +50,11 @@ func main() {
 }
 
 // TODO generate password UUID no dash
-// TODO rate limit middleware
+// TODO remove password rules except for min length
+// TODO https://zxcvbn-ts.github.io/zxcvbn/guide/getting-started/
+// TODO argon2id https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#maximum-password-lengths https://github.com/alexedwards/argon2id/tree/master
+// TODO reset password response not secure
+// TODO rate limit middleware (login, register, forgot password, reset password) https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
 // https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), interruptSignals...)
@@ -125,10 +129,10 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 }
 
 func runHttpServer(ctx context.Context,
-	waitGroup *errgroup.Group, 
-	config config.Config, 
-	dataStore db.DataStore, 
-	redisClient *goRedis.Client, 
+	waitGroup *errgroup.Group,
+	config config.Config,
+	dataStore db.DataStore,
+	redisClient *goRedis.Client,
 	validate *validator.Validate) {
 	server, err := api.NewHttpServer(config, dataStore, redisClient, validate)
 	if err != nil {

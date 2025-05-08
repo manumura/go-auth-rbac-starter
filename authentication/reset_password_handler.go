@@ -59,6 +59,7 @@ func (h *ResetPasswordHandler) ForgotPassword(ctx *gin.Context) {
 		return
 	}
 
+	// TODO response not secure
 	log.Info().Msgf("find user by email: %s", req.Email)
 	u, err := h.GetUserByEmail(ctx, req.Email)
 	if err != nil {

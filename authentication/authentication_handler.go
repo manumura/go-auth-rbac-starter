@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -296,7 +295,6 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	// randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
 	randomOAuthStateString := "test"
 	url := oAuth2Config.AuthCodeURL(randomOAuthStateString)
-	fmt.Println("url", url)
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
 
