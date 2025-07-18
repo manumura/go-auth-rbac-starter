@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -84,7 +85,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	generatedPassword := uuid.New().String()
+	generatedPassword := strings.ReplaceAll(uuid.New().String(), "-", "")
 	log.Info().Msgf("generated password: %s", generatedPassword)
 
 	user, err := h.Create(ctx, CreateUserParams{

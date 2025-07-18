@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
+	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
 	"github.com/manumura/go-auth-rbac-starter/user"
@@ -59,24 +60,31 @@ func (h *ResetPasswordHandler) ForgotPassword(ctx *gin.Context) {
 		return
 	}
 
-	// TODO response not secure
-	log.Info().Msgf("find user by email: %s", req.Email)
-	u, err := h.GetUserByEmail(ctx, req.Email)
+	// Do it in a goroutine to avoid leaking the request time
+	go h.sendResetPasswordToken(ctx, req.Email)
+
+	ctx.JSON(http.StatusOK, common.MessageResponse{Message: "Reset password email sent"})
+}
+
+func (h *ResetPasswordHandler) sendResetPasswordToken(ctx *gin.Context, email string) (*db.ResetPasswordToken, error) {
+	log.Info().Msgf("find user by email: %s", email)
+	u, err := h.GetUserByEmail(ctx, email)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
-		return
+		log.Error().Err(err).Msgf("user not found with email: %s", email)
+		return nil, err
 	}
 
 	t, err := h.CreateResetPasswordToken(ctx, u.ID)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
-		return
+		log.Error().Err(err).Msg("error creating reset password token")
+		return nil, err
 	}
 
-	log.Info().Msgf("[EMAIL][RESET_PWD] sending email to USER: %s", req.Email)
-	go h.EmailService.SendResetPasswordEmail(req.Email, "", t.Token)
+	log.Info().Msgf("[EMAIL][RESET_PWD] sending email to USER: %s", email)
+	go h.EmailService.SendResetPasswordEmail(email, "", t.Token)
 
-	ctx.JSON(http.StatusOK, common.MessageResponse{Message: "Reset password email sent"})
+	return &t, nil
+
 }
 
 // @BasePath /api

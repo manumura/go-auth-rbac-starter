@@ -49,12 +49,9 @@ func main() {
 	}
 }
 
-// TODO generate password UUID no dash
-// TODO remove password rules except for min length
-// TODO https://zxcvbn-ts.github.io/zxcvbn/guide/getting-started/
 // TODO argon2id https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#maximum-password-lengths https://github.com/alexedwards/argon2id/tree/master
-// TODO reset password response not secure
 // TODO rate limit middleware (login, register, forgot password, reset password) https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+// Sliding Window Log Algorithm https://www.youtube.com/watch?app=desktop&v=bCYzRg0oQjY&t=0s
 // https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/
 func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), interruptSignals...)
@@ -95,27 +92,28 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		UseTLS:   config.RedisUseTLS,
 	})
 
-	err = redisClient.Conn().Ping(ctx).Err()
-	if err != nil {
-		log.Error().Err(err).Msg("cannot ping redis")
-		return err
-	}
+	// err = redisClient.Conn().Ping(ctx).Err()
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("cannot ping redis")
+	// 	return err
+	// }
 
-	// TODO
-	// err = rdb.Set(ctx, "key", "value", 0).Err()
+	// // TODO remove test /////////////////
+	// err = redisClient.Set(ctx, "key", "value", 0).Err()
 	// if err != nil {
 	// 	log.Error().Err(err).Msg("cannot set key in redis")
 	// 	panic(err)
 	// }
 
-	// val, err := rdb.Get(ctx, "key").Result()
-	// if err == redis.Nil {
+	// val, err := redisClient.Get(ctx, "key").Result()
+	// if err == goRedis.Nil {
 	// 	fmt.Println("key does not exist")
 	// } else if err != nil {
 	// 	log.Error().Err(err).Msg("cannot get key from redis")
 	// 	panic(err)
 	// }
 	// fmt.Println("key", val)
+	/////////////////////////////////////
 
 	runHttpServer(ctx, waitGroup, config, datastore, redisClient, validate)
 

@@ -290,7 +290,7 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	oAuth2Config := h.getFacebookOauth2Config()
 
-	// TODO
+	// TODO generate random state string and save it in redis
 	// uuid := uuid.New().String()
 	// randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
 	randomOAuthStateString := "test"
@@ -326,7 +326,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 		return
 	}
 
-	// TODO
+	// TODO get random state string from redis
 	randomOAuthStateString := "test"
 	if state != randomOAuthStateString {
 		log.Error().Msg("invalid oauth state")

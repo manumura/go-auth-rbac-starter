@@ -46,7 +46,7 @@ func (service *ResetPasswordServiceImpl) CreateResetPasswordToken(ctx context.Co
 		var err error
 
 		log.Info().Msg("deleting existing token")
-		err = q.DeleteVerifyEmailToken(ctx, userID)
+		err = q.DeleteResetPasswordToken(ctx, userID)
 		if err != nil {
 			return err
 		}
