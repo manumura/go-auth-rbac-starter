@@ -49,7 +49,6 @@ func main() {
 	}
 }
 
-// TODO argon2id https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#maximum-password-lengths https://github.com/alexedwards/argon2id/tree/master
 // TODO rate limit middleware (login, register, forgot password, reset password) https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
 // Sliding Window Log Algorithm https://www.youtube.com/watch?app=desktop&v=bCYzRg0oQjY&t=0s
 // https://grafana.com/blog/2024/02/09/how-i-write-http-services-in-go-after-13-years/

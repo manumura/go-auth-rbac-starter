@@ -8,11 +8,11 @@ VALUES
 -- pwd = 12345678
 INSERT INTO "user_credentials"
 ("user_id", "password", "email", "is_email_verified")
-SELECT id, '$2b$12$hr2oZlCgSzak1g6fx3OqJOcuVW4dcHYNO0Z6frMexrQGmaFEi9/06', 'admin@email.com', 1 FROM "user" WHERE "uuid" = '9153ec44-6052-4bcd-80d8-7462cffe99fb';
+SELECT id, '$argon2id$v=19$m=19,t=2,p=1$VExTOElFeG5oV1kxdlIxaQ$tzoMH4BXieOjQrSMgl/o/QvN909DYVl0VOMtBb9DX3o', 'admin@email.com', 1 FROM "user" WHERE "uuid" = '9153ec44-6052-4bcd-80d8-7462cffe99fb';
 
 INSERT INTO "user_credentials"
 ("user_id", "password", "email")
-SELECT id, '$2b$12$hr2oZlCgSzak1g6fx3OqJOcuVW4dcHYNO0Z6frMexrQGmaFEi9/06', 'emmanuel.mura@gmail.com', 1 FROM "user" WHERE "uuid" = '816e0d9e-9cfe-4191-9d3b-58f27c28d3d7';
+SELECT id, '$argon2id$v=19$m=19,t=2,p=1$VExTOElFeG5oV1kxdlIxaQ$tzoMH4BXieOjQrSMgl/o/QvN909DYVl0VOMtBb9DX3o', 'emmanuel.mura@gmail.com', 1 FROM "user" WHERE "uuid" = '816e0d9e-9cfe-4191-9d3b-58f27c28d3d7';
 
 -- +goose Down
 DELETE FROM user WHERE name = 'admin' OR name = 'manolo';

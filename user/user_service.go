@@ -15,9 +15,9 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/role"
 	"github.com/manumura/go-auth-rbac-starter/security"
 	"github.com/manumura/go-auth-rbac-starter/sse"
+	"github.com/manumura/go-auth-rbac-starter/utils"
 	"github.com/manumura/go-auth-rbac-starter/ws"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -69,7 +69,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, req CreateUserParams
 	now := time.Now().UTC()
 	nowAsString := now.Format(time.DateTime)
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hashedPassword, err := utils.CreateHash(req.Password)
 	if err != nil {
 		log.Error().Err(err).Msg(err.Error())
 		return UserEntity{}, err
@@ -271,7 +271,8 @@ func (service *UserServiceImpl) GetByOauthProvider(ctx context.Context, provider
 }
 
 func (service *UserServiceImpl) CheckPassword(password string, hashedPassword string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	_, err := utils.CompareHashAndPassword(hashedPassword, password)
+	return err
 }
 
 func (service *UserServiceImpl) UpdateByUUID(ctx context.Context, uuid string, p UpdateUserParams) (UserEntity, error) {
@@ -358,7 +359,7 @@ func getUpdateUserCredentialsParams(p UpdateUserParams) (db.UpdateUserCredential
 	}
 
 	if p.Password != nil {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*p.Password), bcrypt.DefaultCost)
+		hashedPassword, err := utils.CreateHash(*p.Password)
 		if err != nil {
 			return uucp, err
 		}

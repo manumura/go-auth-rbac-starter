@@ -9,7 +9,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/user"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/manumura/go-auth-rbac-starter/utils"
 )
 
 type ProfileService interface {
@@ -71,7 +71,7 @@ func (service *ProfileServiceImpl) UpdatePasswordByUserUuid(ctx context.Context,
 		return user.UserEntity{}, exception.ErrInvalidRequest
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(p.NewPassword), bcrypt.DefaultCost)
+	hashedPassword, err := utils.CreateHash(p.NewPassword)
 	if err != nil {
 		return user.UserEntity{}, err
 	}

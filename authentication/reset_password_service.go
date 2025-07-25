@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/db"
 	"github.com/manumura/go-auth-rbac-starter/user"
+	"github.com/manumura/go-auth-rbac-starter/utils"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -83,7 +83,7 @@ func (service *ResetPasswordServiceImpl) GetUserByResetPasswordToken(ctx context
 }
 
 func (service *ResetPasswordServiceImpl) UpdatePassword(ctx context.Context, userID int64, password string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := utils.CreateHash(password)
 	if err != nil {
 		return err
 	}
