@@ -9,6 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
 	"github.com/manumura/go-auth-rbac-starter/authentication"
+	"github.com/manumura/go-auth-rbac-starter/cache"
 	"github.com/manumura/go-auth-rbac-starter/captcha"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/exception"
@@ -29,8 +30,9 @@ const (
 )
 
 func (server *HttpServer) SetupRouter(config config.Config, validate *validator.Validate) *gin.Engine {
+	cacheService := cache.NewCacheService(server.redisClient)
 	userService := user.NewUserService(server.datastore)
-	authenticationService := authentication.NewAuthenticationService(server.datastore, server.redisClient)
+	authenticationService := authentication.NewAuthenticationService(server.datastore)
 	verifyEmailService := authentication.NewVerifyEmailService(server.datastore, userService)
 	resetPasswordService := authentication.NewResetPasswordService(server.datastore, userService)
 	storageService := storage.NewStorageService()
@@ -38,7 +40,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	emailService := message.NewEmailService(config)
 
 	userHandler := user.NewUserHandler(userService, emailService, config, validate)
-	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, emailService, config, validate)
+	authenticationHandler := authentication.NewAuthenticationHandler(userService, authenticationService, emailService, config, validate, cacheService)
 	verifyEmailHandler := authentication.NewVerifyEmailHandler(verifyEmailService, config, validate)
 	resetPasswordHandler := authentication.NewResetPasswordHandler(resetPasswordService, emailService, config, validate)
 	captchaHandler := captcha.NewCaptchaHandler(config, validate)

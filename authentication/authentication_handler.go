@@ -7,11 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/manumura/go-auth-rbac-starter/cache"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/cookie"
 	"github.com/manumura/go-auth-rbac-starter/exception"
@@ -31,6 +33,7 @@ type AuthenticationHandler struct {
 	message.EmailService
 	config.Config
 	*validator.Validate
+	cache.CacheService
 }
 
 type authenticationToken struct {
@@ -52,13 +55,14 @@ var FacebookEndpoint = oauth2.Endpoint{
 	TokenURL: FacebookTokenURL,
 }
 
-func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, emailService message.EmailService, config config.Config, validate *validator.Validate) AuthenticationHandler {
+func NewAuthenticationHandler(userService user.UserService, authenticationService AuthenticationService, emailService message.EmailService, config config.Config, validate *validator.Validate, cacheService cache.CacheService) AuthenticationHandler {
 	return AuthenticationHandler{
 		userService,
 		authenticationService,
 		emailService,
 		config,
 		validate,
+		cacheService,
 	}
 }
 
@@ -290,10 +294,16 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	oAuth2Config := h.getFacebookOauth2Config()
 
-	// TODO generate random state string and save it in redis
-	// uuid := uuid.New().String()
-	// randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
-	randomOAuthStateString := "test"
+	uuid := uuid.New().String()
+	randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
+	cacheKey := "facebook:" + randomOAuthStateString
+	err := h.CacheService.Set(ctx, cacheKey, 1, time.Minute*5)
+	if err != nil {
+		log.Error().Msgf("Error setting cache key: %v", err)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		return
+	}
+
 	url := oAuth2Config.AuthCodeURL(randomOAuthStateString)
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
@@ -313,49 +323,66 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 	errorResponse := ctx.Query("error")
 	errorReason := ctx.Query("error_reason")
 	errorDescription := ctx.Query("error_description")
+	errorUrl := h.Config.ClientAppUrl + "/oauth/facebook/callback?error=callback_failed"
 
 	if errorResponse != "" {
 		log.Error().Msgf("error: %s, error_reason: %s, error_description: %s", errorResponse, errorReason, errorDescription)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
 	}
 
 	if code == "" {
 		log.Error().Msg("code is empty")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
 	}
 
-	// TODO get random state string from redis
-	randomOAuthStateString := "test"
-	if state != randomOAuthStateString {
+	cacheKey := "facebook:" + state
+	_, err := h.CacheService.Get(ctx, cacheKey)
+	if err == cache.ErrCacheMiss {
 		log.Error().Msg("invalid oauth state")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
+	} else if err != nil {
+		log.Error().Msgf("Error getting cache key: %v", err)
+		// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
+		return
+	}
+
+	err = h.CacheService.Delete(ctx, cacheKey)
+	if err != nil {
+		log.Error().Msgf("Error deleting cache key: %v", err)
 	}
 
 	oAuth2Config := h.getFacebookOauth2Config()
 	token, err := oAuth2Config.Exchange(ctx, code)
 	if err != nil || token == nil {
 		log.Error().Err(err).Msg("failed to exchange token")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
 	}
 
 	fbUserDetails, fbUserDetailsError := getUserInfoFromFacebook(token.AccessToken)
 	if fbUserDetailsError != nil {
 		log.Error().Err(fbUserDetailsError).Msg("failed to get user details from facebook")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
 	}
 
 	authResponse, authenticatedUser, err := h.authenticate(fbUserDetails.ID, oauthprovider.FACEBOOK, fbUserDetails.Name, fbUserDetails.Email, ctx)
 	if err != nil {
-		statusCode := http.StatusInternalServerError
-		if err == exception.ErrLogin {
-			statusCode = http.StatusUnauthorized
-		}
-		ctx.AbortWithStatusJSON(statusCode, exception.GetErrorResponse(err, statusCode))
+		// statusCode := http.StatusInternalServerError
+		// if err == exception.ErrLogin {
+		// 	statusCode = http.StatusUnauthorized
+		// }
+		// ctx.AbortWithStatusJSON(statusCode, exception.GetErrorResponse(err, statusCode))
+		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
 	}
 
@@ -366,10 +393,10 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 		IdToken:              authResponse.IdToken,
 	})
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
-	// ctx.JSON(http.StatusOK, authResponse)
 
 	url := h.Config.ClientAppUrl + "/oauth/facebook/callback?access_token=" + authResponse.AccessToken + "&refresh_token=" + authResponse.RefreshToken + "&id_token=" + authResponse.IdToken + "&expires_at=" + authResponse.AccessTokenExpiresAt.Format(time.RFC1123) + "&token_type=Bearer"
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
+	// ctx.JSON(http.StatusOK, authResponse)
 }
 
 func (h *AuthenticationHandler) getFacebookOauth2Config() *oauth2.Config {
