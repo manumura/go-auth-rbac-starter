@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -55,16 +56,16 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup := router.Group(prefix)
 	publicRouterGroup.GET("/v1/index", server.index)
 	publicRouterGroup.GET("/v1/info", server.info)
-	publicRouterGroup.POST("/v1/register", authenticationHandler.Register)
-	publicRouterGroup.POST("/v1/login", authenticationHandler.Login)
+	publicRouterGroup.POST("/v1/register", middleware.RateLimitingMiddleware(server.redisClient, 10, 1*time.Minute), authenticationHandler.Register)
+	publicRouterGroup.POST("/v1/login", middleware.RateLimitingMiddleware(server.redisClient, 10, 1*time.Minute), authenticationHandler.Login) // 5 requests per 1 minute
 	publicRouterGroup.GET("/v1/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
 	publicRouterGroup.GET("/v1/oauth2/facebook/callback", authenticationHandler.Oauth2FacebookLoginCallback)
 	publicRouterGroup.POST("/v1/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
 	publicRouterGroup.POST("/v1/verify-email", verifyEmailHandler.VerifyEmail)
 	publicRouterGroup.POST("/v1/recaptcha", captchaHandler.ValidateCaptcha)
-	publicRouterGroup.POST("/v1/forgot-password", resetPasswordHandler.ForgotPassword)
-	publicRouterGroup.GET("/v1/token/:token", resetPasswordHandler.GetUserByToken)
-	publicRouterGroup.POST("/v1/new-password", resetPasswordHandler.ResetPassword)
+	publicRouterGroup.POST("/v1/forgot-password", middleware.RateLimitingMiddleware(server.redisClient, 10, 1*time.Minute), resetPasswordHandler.ForgotPassword)
+	publicRouterGroup.GET("/v1/token/:token", middleware.RateLimitingMiddleware(server.redisClient, 10, 1*time.Minute), resetPasswordHandler.GetUserByToken)
+	publicRouterGroup.POST("/v1/new-password", middleware.RateLimitingMiddleware(server.redisClient, 10, 1*time.Minute), resetPasswordHandler.ResetPassword)
 
 	logoutRoutes := router.Group(prefix).Use(middleware.LogoutAuthMiddleware(authenticationService, userService))
 	logoutRoutes.POST("/v1/logout", authenticationHandler.Logout)
