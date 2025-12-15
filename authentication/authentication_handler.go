@@ -149,6 +149,7 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -163,6 +164,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 
 	u, err := h.GetByEmail(ctx, req.Email)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
@@ -176,6 +178,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 	// Comparing the password with the hash
 	err = h.CheckPassword(req.Password, u.UserCredentials.Password)
 	if err != nil {
+		log.Error().Err(err).Msg("invalid password")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return
 	}
@@ -188,6 +191,7 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 
 	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create authentication tokens")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
