@@ -61,6 +61,7 @@ func NewProfileHandler(profileService ProfileService, storageService storage.Sto
 func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -68,6 +69,7 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 	log.Info().Msgf("get profile for user UUID %s", authenticatedUser.Uuid)
 	user, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("profile not found by user UUID")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
@@ -92,6 +94,7 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -99,6 +102,7 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 	log.Info().Msgf("update profile for user UUID %s", authenticatedUser.Uuid)
 	var req UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -113,12 +117,14 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 
 	_, err = h.UpdateProfileByUserUuid(ctx, authenticatedUser.Uuid, UpdateProfileParams(req))
 	if err != nil {
+		log.Error().Err(err).Msg("error updating profile by user UUID")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("profile not found by user UUID after update")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
@@ -148,6 +154,7 @@ func (h *ProfileHandler) UpdateProfile(ctx *gin.Context) {
 func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -155,6 +162,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 	log.Info().Msgf("update password for user UUID %s", authenticatedUser.Uuid)
 	var req UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -169,6 +177,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 
 	_, err = h.UpdatePasswordByUserUuid(ctx, authenticatedUser.Uuid, UpdatePasswordParams(req))
 	if err != nil {
+		log.Error().Err(err).Msg("error updating password by user UUID")
 		statusCode := http.StatusInternalServerError
 		if err == exception.ErrNotFound || err == exception.ErrInvalidRequest {
 			statusCode = http.StatusBadRequest
@@ -179,6 +188,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 
 	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("profile not found by user UUID after password update")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
@@ -208,6 +218,7 @@ func (h *ProfileHandler) UpdatePassword(ctx *gin.Context) {
 func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -215,12 +226,14 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	log.Info().Msgf("update image for user UUID %s", authenticatedUser.Uuid)
 	file, err := ctx.FormFile("image")
 	if err != nil {
+		log.Error().Err(err).Msg("error retrieving the file")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	filename, err := getFileName(file, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting file name")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
@@ -271,6 +284,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	}
 	_, err = h.UpdateImageByUserUuid(ctx, authenticatedUser.Uuid, p)
 	if err != nil {
+		log.Error().Err(err).Msg("error updating image by user UUID")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
@@ -281,6 +295,7 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 
 	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("profile not found by user UUID after image update")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
@@ -347,6 +362,7 @@ func getFileExtension(file *multipart.FileHeader) (string, error) {
 func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -354,6 +370,7 @@ func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 	log.Info().Msgf("delete profile for user UUID %s", authenticatedUser.Uuid)
 	_, err = h.DeleteProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("error deleting profile by user UUID")
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
 			return
@@ -364,6 +381,7 @@ func (h *ProfileHandler) DeleteProfile(ctx *gin.Context) {
 
 	u, err := h.GetProfileByUserUuid(ctx, authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("profile not found by user UUID after deletion")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}

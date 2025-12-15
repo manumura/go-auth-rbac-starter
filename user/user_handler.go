@@ -59,12 +59,14 @@ func NewUserHandler(service UserService, emailService message.EmailService, conf
 func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -77,10 +79,12 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 
 	isEmailExist, err := h.IsEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
+		log.Error().Err(err).Msg("error checking if email exists")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 	if isEmailExist {
+		log.Error().Msgf("email already exists: %s", req.Email)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 		return
 	}
@@ -97,6 +101,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	})
 
 	if err != nil {
+		log.Error().Err(err).Msg("error creating user")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
@@ -178,6 +183,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 
 	u, err := h.GetAll(ctx, p)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting all users")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
@@ -188,6 +194,7 @@ func (h *UserHandler) GetAllUsers(ctx *gin.Context) {
 	}
 	c, err := h.CountAll(ctx, cp)
 	if err != nil {
+		log.Error().Err(err).Msg("error counting users")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
@@ -222,12 +229,14 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 
 	_, err := uuid.Parse(userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("invalid user UUID")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting user by UUID")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
@@ -255,6 +264,7 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -264,12 +274,14 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 
 	userUUID, err := uuid.Parse(userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("invalid user UUID")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	var req UpdateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -285,10 +297,12 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	if req.Email != nil {
 		isEmailExist, err := h.IsEmailExist(ctx, *req.Email, userUUID)
 		if err != nil {
+			log.Error().Err(err).Msg("error checking if email exists")
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 			return
 		}
 		if isEmailExist {
+			log.Error().Msgf("email already exists: %s", *req.Email)
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 			return
 		}
@@ -296,12 +310,14 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 
 	_, err = h.UpdateByUUID(ctx, userUuidAsString, UpdateUserParams(req))
 	if err != nil {
+		log.Error().Err(err).Msg("error updating user")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting user by UUID after update")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
@@ -333,6 +349,7 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
@@ -342,18 +359,21 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 
 	_, err = uuid.Parse(userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("invalid user UUID")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting user by UUID before delete")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
 
 	err = h.DeleteByUUID(ctx, userUuidAsString)
 	if err != nil {
+		log.Error().Err(err).Msg("error deleting user")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}

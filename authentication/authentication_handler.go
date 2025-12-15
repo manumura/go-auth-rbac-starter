@@ -81,6 +81,7 @@ func NewAuthenticationHandler(userService user.UserService, authenticationServic
 func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 	var req RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -93,10 +94,12 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 
 	isEmailExist, err := h.IsEmailExist(ctx, req.Email, uuid.Nil)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to check email existence")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
 	if isEmailExist {
+		log.Error().Msg("email already exists")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
 		return
 	}
@@ -110,6 +113,7 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 	})
 
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create user")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
@@ -221,20 +225,23 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 // @Router /v1/refresh-token [post]
 func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
-	log.Info().Msgf("user %s regresh out", authenticatedUser.Uuid)
+	log.Info().Msgf("user %s token refresh", authenticatedUser.Uuid)
 	if err != nil {
+		log.Error().Err(err).Msg("cannot get user from context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, authenticatedUser.Uuid.String())
 	if err != nil {
+		log.Error().Err(err).Msg("user not found")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
 		return
 	}
 
 	authResponse, authenticatedUser, err := h.createAuthenticationTokens(u, ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create authentication tokens")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
@@ -265,18 +272,21 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 	authenticatedUser, err := security.GetUserFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("cannot get user from context")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
 		return
 	}
 
 	u, err := h.GetByUUID(ctx, authenticatedUser.Uuid.String())
 	if err != nil {
+		log.Error().Err(err).Msg("user not found")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(exception.ErrNotFound, http.StatusNotFound))
 		return
 	}
 
 	err = h.DeleteAuthenticationTokenByUserID(ctx, u.ID)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to delete authentication token")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
 		return
 	}
@@ -381,6 +391,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 
 	authResponse, authenticatedUser, err := h.authenticate(fbUserDetails.ID, oauthprovider.FACEBOOK, fbUserDetails.Name, fbUserDetails.Email, ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to authenticate user")
 		// statusCode := http.StatusInternalServerError
 		// if err == exception.ErrLogin {
 		// 	statusCode = http.StatusUnauthorized
@@ -417,11 +428,13 @@ func getUserInfoFromFacebook(token string) (FacebookUserDetails, error) {
 	var fbUserDetails FacebookUserDetails
 	req, err := http.NewRequest("GET", FacebookProfileURL+"?fields=id,name,email,picture&access_token="+token, nil)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create request")
 		return FacebookUserDetails{}, err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get user info from facebook")
 		return FacebookUserDetails{}, err
 	}
 	defer res.Body.Close()
@@ -429,6 +442,7 @@ func getUserInfoFromFacebook(token string) (FacebookUserDetails, error) {
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&fbUserDetails)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to decode facebook user details")
 		return FacebookUserDetails{}, err
 	}
 
@@ -452,6 +466,7 @@ func getUserInfoFromFacebook(token string) (FacebookUserDetails, error) {
 func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 	var req Oauth2GoogleLoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -477,6 +492,7 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 
 	authResponse, authenticatedUser, err := h.authenticate(id, oauthprovider.GOOGLE, name, email, ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to authenticate user")
 		statusCode := http.StatusInternalServerError
 		if err == exception.ErrLogin {
 			statusCode = http.StatusUnauthorized
@@ -500,6 +516,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 	u, err := h.GetByOauthProvider(ctx, p, id)
 	// Error is other than user not found
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Error().Err(err).Msg("failed to get user by oauth provider")
 		// ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.ErrorResponse(exception.ErrLogin, http.StatusUnauthorized))
 		return AuthenticationResponse{}, security.AuthenticatedUser{}, exception.ErrLogin
 	}
@@ -515,6 +532,7 @@ func (h *AuthenticationHandler) authenticate(id string, p oauthprovider.OauthPro
 		})
 
 		if err != nil {
+			log.Error().Err(err).Msg("failed to create oauth user")
 			// ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.ErrorResponse(err, http.StatusInternalServerError))
 			return AuthenticationResponse{}, security.AuthenticatedUser{}, err
 		}

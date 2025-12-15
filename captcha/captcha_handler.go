@@ -51,6 +51,7 @@ func (h *CaptchaHandler) ValidateCaptcha(ctx *gin.Context) {
 	log.Info().Msg("validate captcha")
 	var req ValidateCaptchaRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}

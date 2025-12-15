@@ -43,6 +43,7 @@ func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 	log.Info().Msg("update user is email verified by token")
 	var req VerifyEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("invalid request")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
 		return
 	}
@@ -57,6 +58,7 @@ func (h *VerifyEmailHandler) VerifyEmail(ctx *gin.Context) {
 	log.Info().Msgf("find user by verify email token: %s", req.Token)
 	u, err := h.GetUserByVerifyEmailToken(ctx, req.Token)
 	if err != nil {
+		log.Error().Err(err).Msg("user not found by verify email token")
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
