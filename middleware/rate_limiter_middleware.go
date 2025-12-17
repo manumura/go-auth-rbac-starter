@@ -104,6 +104,7 @@ func isRedisConnectionError(err error) bool {
 	if err == nil {
 		return false
 	}
+
 	errStr := err.Error()
 	return strings.Contains(errStr, "connection refused") ||
 		strings.Contains(errStr, "connection reset") ||
@@ -175,12 +176,23 @@ func RateLimiterMiddleware(config *RateLimitConfig) gin.HandlerFunc {
 		// Execute the transaction
 		_, err := pipe.Exec(redisCtx)
 		if err != nil {
+			// Handle context cancellation (client disconnected)
+			if errors.Is(err, context.Canceled) {
+				log.Warn().
+					Str("clientID", clientID).
+					Msg("RateLimiterMiddleware: request canceled by client")
+				ctx.Abort()
+				return
+			}
+
 			// Handle different types of Redis errors
 			if isRedisConnectionError(err) {
 				log.Error().
 					Err(err).
 					Str("clientID", clientID).
 					Str("key", key).
+					Str("path", ctx.Request.URL.Path).
+					Str("method", ctx.Request.Method).
 					Bool("failOpen", config.FailOpen).
 					Msg("RateLimiterMiddleware: Redis connection error")
 
@@ -194,31 +206,6 @@ func RateLimiterMiddleware(config *RateLimitConfig) gin.HandlerFunc {
 				}
 
 				// Fail closed - return service unavailable
-				ctx.AbortWithStatusJSON(http.StatusServiceUnavailable, serviceUnavailableResponse)
-				return
-			}
-
-			// Handle context cancellation (client disconnected)
-			if errors.Is(err, context.Canceled) {
-				log.Info().
-					Str("clientID", clientID).
-					Msg("RateLimiterMiddleware: request canceled by client")
-				ctx.Abort()
-				return
-			}
-
-			// Handle context deadline exceeded
-			if errors.Is(err, context.DeadlineExceeded) {
-				log.Error().
-					Str("clientID", clientID).
-					Str("key", key).
-					Msg("RateLimiterMiddleware: Redis operation timed out")
-
-				if config.FailOpen {
-					ctx.Next()
-					return
-				}
-
 				ctx.AbortWithStatusJSON(http.StatusServiceUnavailable, serviceUnavailableResponse)
 				return
 			}
