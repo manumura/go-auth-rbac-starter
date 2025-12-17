@@ -9,10 +9,12 @@ import (
 )
 
 type RedisOptions struct {
-	Address  string
-	Username string
-	Password string
-	UseTLS   bool
+	Address      string
+	Username     string
+	Password     string
+	UseTLS       bool
+	PoolSize     int
+	MinIdleConns int
 }
 
 func NewRedisClient(options RedisOptions) *goRedis.Client {
@@ -24,6 +26,8 @@ func NewRedisClient(options RedisOptions) *goRedis.Client {
 			log.Info().Msg("connected to redis")
 			return nil
 		},
+		PoolSize:     options.PoolSize,
+		MinIdleConns: options.MinIdleConns,
 	})
 
 	if options.UseTLS {

@@ -83,11 +83,14 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	}
 
 	redisClient := redis.NewRedisClient(redis.RedisOptions{
-		Address:  config.RedisHost + ":" + strconv.Itoa(config.RedisPort),
-		Username: config.RedisUsername,
-		Password: config.RedisPassword,
-		UseTLS:   config.RedisUseTLS,
+		Address:      config.RedisHost + ":" + strconv.Itoa(config.RedisPort),
+		Username:     config.RedisUsername,
+		Password:     config.RedisPassword,
+		UseTLS:       config.RedisUseTLS,
+		PoolSize:     10,
+		MinIdleConns: 5,
 	})
+	defer redisClient.Close()
 
 	err = redisClient.Conn().Ping(ctx).Err()
 	if err != nil {
