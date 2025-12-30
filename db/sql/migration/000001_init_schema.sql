@@ -72,6 +72,8 @@ CREATE TABLE oauth_user (
 );
 CREATE UNIQUE INDEX oauth_user_email_oauth_provider_id_key ON oauth_user (email, oauth_provider_id);
 CREATE UNIQUE INDEX oauth_user_external_user_id_oauth_provider_id_key ON oauth_user (external_user_id, oauth_provider_id);
+CREATE INDEX "AK_oauth_user_user_id" ON oauth_user (user_id);
+CREATE INDEX "AK_oauth_user_oauth_provider_id" ON oauth_user (oauth_provider_id);
 
 CREATE TABLE reset_password_token (
 	"user_id" INTEGER PRIMARY KEY,
