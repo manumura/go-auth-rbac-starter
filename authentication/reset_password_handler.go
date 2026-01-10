@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -108,21 +109,21 @@ func (h *ResetPasswordHandler) GetUserByToken(ctx *gin.Context) {
 	_, err := uuid.Parse(tokenAsString)
 	if err != nil {
 		log.Error().Err(err).Msg("invalid token format")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(errors.New("invalid token"), http.StatusBadRequest))
 		return
 	}
 
 	u, err := h.GetUserByResetPasswordToken(ctx, tokenAsString)
 	if err != nil {
 		log.Error().Err(err).Msg("user not found by reset password token")
-		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(errors.New("invalid token"), http.StatusNotFound))
 		return
 	}
 
 	_, err = h.isTokenValid(u.ResetPasswordToken.ExpiresAt)
 	if err != nil {
 		log.Error().Err(err).Msg("token already expired")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(errors.New("invalid token"), http.StatusBadRequest))
 		return
 	}
 
