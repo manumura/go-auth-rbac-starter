@@ -70,6 +70,8 @@ func (service *EmailServiceImpl) SendEmail(to string, subject string, body strin
 	err := d.DialAndSend(m)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to send email to %s with subject %s", to, subject)
+	} else {
+		log.Info().Msgf("email successfully sent to %s with subject %s", to, subject)
 	}
 
 	return err

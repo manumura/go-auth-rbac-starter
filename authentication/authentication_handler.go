@@ -33,7 +33,7 @@ type AuthenticationHandler struct {
 	message.EmailService
 	config.Config
 	*validator.Validate
-	cache.CacheService
+	cacheService cache.CacheService
 }
 
 type authenticationToken struct {
@@ -92,16 +92,28 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	isEmailExist, err := h.IsEmailExist(ctx, req.Email, uuid.Nil)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to check email existence")
+	// Check if email already exists
+	existingUser, err := h.GetByEmail(ctx, req.Email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Error().Err(err).Msg("failed to get user by email")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
 		return
 	}
-	if isEmailExist {
-		log.Error().Msg("email already exists")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
-		return
+
+	if existingUser.Uuid != uuid.Nil {
+		if existingUser.IsActive {
+			log.Error().Msgf("email already exists: %s", req.Email)
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidEmail, http.StatusBadRequest))
+			return
+		}
+
+		log.Warn().Msgf("deleting inactive user with email %s", req.Email)
+		err = h.DeleteByUUID(ctx, existingUser.Uuid.String())
+		if err != nil {
+			log.Error().Err(err).Msg("failed to delete inactive user")
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+			return
+		}
 	}
 
 	u, err := h.Create(ctx, user.CreateUserParams{
@@ -111,7 +123,6 @@ func (h *AuthenticationHandler) Register(ctx *gin.Context) {
 		Role:            role.USER,
 		IsEmailVerified: false,
 	})
-
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create user")
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
@@ -311,7 +322,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
 	uuid := uuid.New().String()
 	randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
 	cacheKey := "facebook:" + randomOAuthStateString
-	err := h.CacheService.Set(ctx, cacheKey, 1, time.Minute*5)
+	err := h.cacheService.Set(ctx, cacheKey, 1, time.Minute*5)
 	if err != nil {
 		log.Error().Msgf("Error setting cache key: %v", err)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
@@ -354,7 +365,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 	}
 
 	cacheKey := "facebook:" + state
-	_, err := h.CacheService.Get(ctx, cacheKey)
+	_, err := h.cacheService.Get(ctx, cacheKey)
 	if err == cache.ErrCacheMiss {
 		log.Error().Msg("invalid oauth state")
 		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
@@ -367,7 +378,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 		return
 	}
 
-	err = h.CacheService.Delete(ctx, cacheKey)
+	err = h.cacheService.Delete(ctx, cacheKey)
 	if err != nil {
 		log.Error().Msgf("Error deleting cache key: %v", err)
 	}

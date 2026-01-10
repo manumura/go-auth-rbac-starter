@@ -376,21 +376,22 @@ func (service *UserServiceImpl) DeleteByUUID(ctx context.Context, uuid string) e
 
 func (service *UserServiceImpl) IsEmailExist(ctx context.Context, email string, userUUID uuid.UUID) (bool, error) {
 	u, err := service.GetByEmail(ctx, email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Info().Msgf("user not found with email: %s", email)
+			return false, nil
+		}
+		log.Error().Err(err).Msgf("checking email %s existence failed", email)
 		return false, err
 	}
 
-	if u.Uuid == userUUID {
+	if userUUID != uuid.Nil && u.Uuid == userUUID {
 		log.Info().Msgf("email %s belongs to the same user", email)
 		return false, nil
 	}
 
-	if u.Uuid != uuid.Nil {
-		log.Error().Msgf("email %s already exists", email)
-		return true, nil
-	}
-
-	return false, nil
+	log.Warn().Msgf("email %s already exists for user UUID %s", email, u.Uuid)
+	return true, nil
 }
 
 func (service *UserServiceImpl) ManageUserEventsStreamClientsMiddleware() gin.HandlerFunc {
