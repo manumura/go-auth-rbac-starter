@@ -18,14 +18,16 @@ type envCongig struct {
 	Environment        string `env:"ENV" validate:"required"`
 	ClientAppUrl       string `env:"CLIENT_APP_URL" validate:"required"`
 	IdTokenKeyAsBase64 string `env:"ID_TOKEN_PRIVATE_KEY_AS_BASE64" validate:"required"`
-	CORSAllowedOrigins string `env:"CORS_ALLOWED_ORIGNS" validate:"required"`
+	CORSAllowedOrigins string `env:"CORS_ALLOWED_ORIGINS" validate:"required"`
+	CookieDomain       string `env:"COOKIE_DOMAIN" validate:"required"`
+	CookieSecure       bool   `env:"COOKIE_SECURE"`
 	GoogleClientId     string `env:"GOOGLE_CLIENT_ID" validate:"required"`
 	RecaptchaSecretKey string `env:"RECAPTCHA_SECRET_KEY" validate:"required"`
 	SmtpUser           string `env:"SMTP_USER" validate:"required"`
 	SmtpPassword       string `env:"SMTP_PASSWORD" validate:"required"`
 	SmtpHost           string `env:"SMTP_HOST" validate:"required"`
 	SmtpPort           int    `env:"SMTP_PORT" validate:"required"`
-	SmtpSecure         bool   `env:"SMTP_SECURE" validate:"required"`
+	SmtpSecure         bool   `env:"SMTP_SECURE"`
 	// DatabaseUrl                  string `env:"DATABASE_URL" validate:"required"`
 	TursoDatabaseUrl             string `env:"TURSO_DATABASE_URL" validate:"required"`
 	TursoAuthToken               string `env:"TURSO_AUTH_TOKEN" validate:"required"`

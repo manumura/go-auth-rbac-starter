@@ -4,13 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SecurityMiddleware() gin.HandlerFunc {
+func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// TODO host header validation
-		// if ctx.Request.Host != expectedHost {
-		// 	ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid host header"})
-		// 	return
-		// }
 		ctx.Header("X-Frame-Options", "DENY")
 		ctx.Header("Content-Security-Policy", "default-src 'self'; connect-src *; font-src *; script-src-elem * 'unsafe-inline'; img-src * data:; style-src * 'unsafe-inline';")
 		ctx.Header("X-XSS-Protection", "1; mode=block")

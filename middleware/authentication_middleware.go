@@ -17,11 +17,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	authorizationHeaderKey  = "authorization"
-	authorizationTypeBearer = "bearer"
-)
-
 func AuthMiddleware(authenticationService authentication.AuthenticationService, userService user.UserService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		a, err := getAuthenticationFromAccessToken(ctx, authenticationService)

@@ -27,5 +27,9 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		"expires",
 		"last-event-id",
 	}
+	// Expose X-CSRF-Token header so frontend can read it from responses
+	cfg.ExposeHeaders = []string{
+		"X-CSRF-Token",
+	}
 	return cors.New(cfg)
 }
