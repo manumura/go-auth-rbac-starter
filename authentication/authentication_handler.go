@@ -16,6 +16,7 @@ import (
 	"github.com/manumura/go-auth-rbac-starter/cache"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/cookie"
+	"github.com/manumura/go-auth-rbac-starter/csrf"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/manumura/go-auth-rbac-starter/message"
 	oauthprovider "github.com/manumura/go-auth-rbac-starter/oauth_provider"
@@ -211,7 +212,23 @@ func (h *AuthenticationHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+	// Generate session-bound CSRF token and store in Redis
+	csrfToken, err := csrf.GenerateAndStoreSessionToken(ctx, h.cacheService, h.Config, authenticatedUser.Uuid.String())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate CSRF token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+	// Set CSRF token in cookie
+	csrf.SetCSRFCookie(ctx, csrfToken, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	})
+
+	cookie.SetAuthCookies(ctx, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	}, cookie.AuthCookieParams{
 		AccessToken:          authResponse.AccessToken,
 		RefreshToken:         authResponse.RefreshToken,
 		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
@@ -257,7 +274,23 @@ func (h *AuthenticationHandler) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+	// Generate new session-bound CSRF token and store in Redis
+	csrfToken, err := csrf.GenerateAndStoreSessionToken(ctx, h.cacheService, h.Config, authenticatedUser.Uuid.String())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate CSRF token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+	// Set CSRF token in cookie
+	csrf.SetCSRFCookie(ctx, csrfToken, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	})
+
+	cookie.SetAuthCookies(ctx, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	}, cookie.AuthCookieParams{
 		AccessToken:          authResponse.AccessToken,
 		RefreshToken:         authResponse.RefreshToken,
 		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
@@ -302,7 +335,20 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 		return
 	}
 
-	cookie.DeleteAuthCookies(ctx)
+	// Clean up CSRF token from Redis
+	if err := csrf.DeleteSessionToken(ctx, h.cacheService, authenticatedUser.Uuid.String()); err != nil {
+		log.Warn().Err(err).Msg("failed to delete CSRF token from cache")
+		// Don't fail logout if CSRF token deletion fails
+	}
+	csrf.DeleteCSRFCookie(ctx, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	})
+
+	cookie.DeleteAuthCookies(ctx, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	})
 	log.Info().Msgf("user %s logged out", authenticatedUser.Uuid)
 	ctx.JSON(http.StatusNoContent, nil)
 }
@@ -412,7 +458,23 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 		return
 	}
 
-	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+	// Generate session-bound CSRF token and store in Redis
+	csrfToken, err := csrf.GenerateAndStoreSessionToken(ctx, h.cacheService, h.Config, authenticatedUser.Uuid.String())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate CSRF token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+	// Set CSRF token in cookie
+	csrf.SetCSRFCookie(ctx, csrfToken, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	})
+
+	cookie.SetAuthCookies(ctx, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	}, cookie.AuthCookieParams{
 		AccessToken:          authResponse.AccessToken,
 		RefreshToken:         authResponse.RefreshToken,
 		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,
@@ -512,7 +574,23 @@ func (h *AuthenticationHandler) Oauth2GoogleLogin(ctx *gin.Context) {
 		return
 	}
 
-	cookie.SetAuthCookies(ctx, cookie.AuthCookieParams{
+	// Generate session-bound CSRF token and store in Redis
+	csrfToken, err := csrf.GenerateAndStoreSessionToken(ctx, h.cacheService, h.Config, authenticatedUser.Uuid.String())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to generate CSRF token")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+	// Set CSRF token in cookie
+	csrf.SetCSRFCookie(ctx, csrfToken, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	})
+
+	cookie.SetAuthCookies(ctx, cookie.CookieParams{
+		Domain: h.Config.CookieDomain,
+		Secure: h.Config.CookieSecure,
+	}, cookie.AuthCookieParams{
 		AccessToken:          authResponse.AccessToken,
 		RefreshToken:         authResponse.RefreshToken,
 		AccessTokenExpiresAt: authResponse.AccessTokenExpiresAt,

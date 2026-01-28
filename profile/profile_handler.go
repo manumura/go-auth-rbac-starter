@@ -73,6 +73,7 @@ func (h *ProfileHandler) GetProfile(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, exception.GetErrorResponse(err, http.StatusNotFound))
 		return
 	}
+
 	ctx.JSON(http.StatusOK, user)
 }
 

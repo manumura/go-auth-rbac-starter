@@ -49,8 +49,11 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 
 	router := gin.Default()
 	router.Use(gin.CustomRecovery(exception.UncaughtErrorHandler))
-	router.Use(middleware.SecurityMiddleware())
+	router.Use(middleware.SecurityHeadersMiddleware())
+
 	allowedOrigins := strings.Split(config.CORSAllowedOrigins, ",")
+	// Defense-in-depth: validate Origin/Referer
+	router.Use(middleware.OriginMiddleware(allowedOrigins))
 	router.Use(middleware.CORSMiddleware(allowedOrigins))
 
 	rateLimiterConfig := &middleware.RateLimitConfig{
@@ -65,7 +68,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup.GET("/v1/index", server.index)
 	publicRouterGroup.GET("/v1/info", server.info)
 	publicRouterGroup.POST("/v1/register", middleware.RateLimiterMiddleware(rateLimiterConfig), authenticationHandler.Register)
-	publicRouterGroup.POST("/v1/login", middleware.RateLimiterMiddleware(rateLimiterConfig), authenticationHandler.Login) // 5 requests per 1 minute
+	publicRouterGroup.POST("/v1/login", middleware.RateLimiterMiddleware(rateLimiterConfig), authenticationHandler.Login)
 	publicRouterGroup.GET("/v1/oauth2/facebook", authenticationHandler.Oauth2FacebookLogin)
 	publicRouterGroup.GET("/v1/oauth2/facebook/callback", authenticationHandler.Oauth2FacebookLoginCallback)
 	publicRouterGroup.POST("/v1/oauth2/google", authenticationHandler.Oauth2GoogleLogin)
@@ -75,20 +78,29 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	publicRouterGroup.GET("/v1/token/:token", middleware.RateLimiterMiddleware(rateLimiterConfig), resetPasswordHandler.GetUserByToken)
 	publicRouterGroup.POST("/v1/new-password", middleware.RateLimiterMiddleware(rateLimiterConfig), resetPasswordHandler.ResetPassword)
 
-	logoutRoutes := router.Group(prefix).Use(middleware.LogoutAuthMiddleware(authenticationService, userService))
+	logoutRoutes := router.Group(prefix).
+		Use(middleware.LogoutAuthMiddleware(authenticationService, userService)).
+		Use(middleware.CSRFMiddleware(cacheService))
 	logoutRoutes.POST("/v1/logout", authenticationHandler.Logout)
 
-	refreshTokenRoutes := router.Group(prefix).Use(middleware.RefreshAuthMiddleware(authenticationService, userService))
+	refreshTokenRoutes := router.Group(prefix).
+		Use(middleware.RefreshAuthMiddleware(authenticationService, userService)).
+		Use(middleware.CSRFMiddleware(cacheService))
 	refreshTokenRoutes.POST("/v1/refresh-token", authenticationHandler.RefreshToken)
 
-	authRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService))
+	authRoutes := router.Group(prefix).
+		Use(middleware.AuthMiddleware(authenticationService, userService)).
+		Use(middleware.CSRFMiddleware(cacheService))
 	authRoutes.GET("/v1/profile", profileHandler.GetProfile)
 	authRoutes.PUT("/v1/profile", profileHandler.UpdateProfile)
 	authRoutes.PUT("/v1/profile/password", profileHandler.UpdatePassword)
 	authRoutes.PUT("/v1/profile/image", profileHandler.UpdateImage)
 	authRoutes.DELETE("/v1/profile", profileHandler.DeleteProfile)
 
-	adminRoutes := router.Group(prefix).Use(middleware.AuthMiddleware(authenticationService, userService)).Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
+	adminRoutes := router.Group(prefix).
+		Use(middleware.AuthMiddleware(authenticationService, userService)).
+		Use(middleware.CSRFMiddleware(cacheService)).
+		Use(middleware.RoleMiddleware([]role.Role{role.ADMIN}))
 	adminRoutes.POST("/v1/users", userHandler.CreateUser)
 	adminRoutes.GET("/v1/users", userHandler.GetAllUsers)
 	adminRoutes.GET("/v1/users/:uuid", userHandler.GetUser)
