@@ -8,9 +8,9 @@ logs
 !.vscode/launch.json
 !.vscode/extensions.json
 
-*.env*
+.env*
 !.env.template
-config*.yaml
+config.yaml
 
 .history/
 tmp/
