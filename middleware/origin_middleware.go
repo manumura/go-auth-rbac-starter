@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/exception"
 	"github.com/rs/zerolog/log"
 )
@@ -21,19 +21,7 @@ func OriginMiddleware(allowedOrigins []string) gin.HandlerFunc {
 			return
 		}
 
-		// Get Origin header (preferred)
-		origin := ctx.GetHeader("Origin")
-
-		// Fall back to Referer header if Origin is not present
-		if origin == "" {
-			referer := ctx.GetHeader("Referer")
-			if referer != "" {
-				parsedReferer, err := url.Parse(referer)
-				if err == nil {
-					origin = parsedReferer.Scheme + "://" + parsedReferer.Host
-				}
-			}
-		}
+		origin := common.GetOriginFromHeader(ctx)
 
 		// If neither Origin nor Referer is present, block the request
 		if origin == "" {

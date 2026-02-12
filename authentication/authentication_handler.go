@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/manumura/go-auth-rbac-starter/cache"
+	"github.com/manumura/go-auth-rbac-starter/common"
 	"github.com/manumura/go-auth-rbac-starter/config"
 	"github.com/manumura/go-auth-rbac-starter/cookie"
 	"github.com/manumura/go-auth-rbac-starter/csrf"
@@ -363,12 +365,14 @@ func (h *AuthenticationHandler) Logout(ctx *gin.Context) {
 // @Failure 500 {object} exception.ErrorResponse
 // @Router /v1/oauth2/facebook [get]
 func (h *AuthenticationHandler) Oauth2FacebookLogin(ctx *gin.Context) {
-	oAuth2Config := h.getFacebookOauth2Config()
+	oAuth2Config := h.getFacebookOauth2Config(ctx)
+	origin := common.GetOriginFromHeader(ctx)
+	log.Info().Msgf("OAuth2 Facebook login initiated from origin: %s", origin)
 
 	uuid := uuid.New().String()
 	randomOAuthStateString := strings.Replace(uuid, "-", "", -1)
 	cacheKey := "facebook:" + randomOAuthStateString
-	err := h.cacheService.Set(ctx, cacheKey, 1, time.Minute*5)
+	err := h.cacheService.Set(ctx, cacheKey, origin, time.Minute*5)
 	if err != nil {
 		log.Error().Msgf("Error setting cache key: %v", err)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(exception.ErrInternalServer, http.StatusInternalServerError))
@@ -411,7 +415,7 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 	}
 
 	cacheKey := "facebook:" + state
-	_, err := h.cacheService.Get(ctx, cacheKey)
+	origin, err := h.cacheService.Get(ctx, cacheKey)
 	if err == cache.ErrCacheMiss {
 		log.Error().Msg("invalid oauth state")
 		// ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(exception.ErrInvalidRequest, http.StatusBadRequest))
@@ -423,13 +427,14 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 		ctx.Redirect(http.StatusTemporaryRedirect, errorUrl)
 		return
 	}
+	log.Info().Msgf("OAuth2 Facebook login callback from origin: %s", origin)
 
 	err = h.cacheService.Delete(ctx, cacheKey)
 	if err != nil {
 		log.Error().Msgf("Error deleting cache key: %v", err)
 	}
 
-	oAuth2Config := h.getFacebookOauth2Config()
+	oAuth2Config := h.getFacebookOauth2Config(ctx)
 	token, err := oAuth2Config.Exchange(ctx, code)
 	if err != nil || token == nil {
 		log.Error().Err(err).Msg("failed to exchange token")
@@ -487,11 +492,18 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 	// ctx.JSON(http.StatusOK, authResponse)
 }
 
-func (h *AuthenticationHandler) getFacebookOauth2Config() *oauth2.Config {
+func (h *AuthenticationHandler) getFacebookOauth2Config(ctx *gin.Context) *oauth2.Config {
+	scheme := "http"
+	if h.Config.Environment != "dev" {
+		scheme = "https"
+	}
+	redirectURL := fmt.Sprintf("%s://%s%s", scheme, ctx.Request.Host, h.Config.FacebookRedirectUrl)
+	log.Info().Msgf("Facebook Redirect URL: %s", redirectURL)
+
 	return &oauth2.Config{
 		ClientID:     h.Config.FacebookAppId,
 		ClientSecret: h.Config.FacebookAppSecret,
-		RedirectURL:  h.Config.FacebookRedirectUrl,
+		RedirectURL:  redirectURL,
 		Endpoint:     FacebookEndpoint,
 		Scopes:       []string{"email", "public_profile"},
 	}
