@@ -487,8 +487,14 @@ func (h *AuthenticationHandler) Oauth2FacebookLoginCallback(ctx *gin.Context) {
 	})
 	log.Info().Msgf("user %s logged in", authenticatedUser.Uuid)
 
-	url := h.Config.ClientAppUrl + "/oauth/facebook/callback?access_token=" + authResponse.AccessToken + "&refresh_token=" + authResponse.RefreshToken + "&id_token=" + authResponse.IdToken + "&expires_at=" + authResponse.AccessTokenExpiresAt.Format(time.RFC1123) + "&token_type=Bearer"
-	ctx.Redirect(http.StatusTemporaryRedirect, url)
+	clientUrl := h.Config.ClientAppUrl
+	allowedOrigins := strings.Split(h.Config.CORSAllowedOrigins, ",")
+	if common.IsOriginAllowed(origin, allowedOrigins) {
+		clientUrl = origin
+	}
+
+	redirectURL := fmt.Sprintf("%s/oauth/facebook/callback?id_token=%s", clientUrl, authResponse.IdToken)
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	// ctx.JSON(http.StatusOK, authResponse)
 }
 
