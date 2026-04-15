@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/manumura/go-auth-rbac-starter/cache"
@@ -41,8 +40,7 @@ func GenerateAndStoreSessionToken(ctx context.Context, cacheService cache.CacheS
 	}
 
 	key := fmt.Sprintf("%s%s", csrfKeyPrefix, userUUID)
-	expiration := time.Duration(cfg.AccessTokenExpiresInAsSeconds) * time.Second
-	err = cacheService.Set(ctx, key, token, expiration)
+	err = cacheService.Set(ctx, key, token, 0)
 	if err != nil {
 		return "", err
 	}

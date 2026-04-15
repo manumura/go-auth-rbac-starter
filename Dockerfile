@@ -1,6 +1,6 @@
 # Example : https://github.com/GoogleCloudPlatform/golang-samples/blob/main/run/helloworld/Dockerfile
 # Build the application from source
-FROM golang:1.24.2 AS build
+FROM golang:1.26.1 AS build
 
 WORKDIR /app
 
