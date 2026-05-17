@@ -308,6 +308,64 @@ func (h *ProfileHandler) UpdateImage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, u)
 }
 
+// @BasePath /api
+// GenerateUploadPresignedURL godoc
+// @Summary generate upload presigned URL
+// @Description generate upload presigned URL
+// @Tags profile
+// @Accept mpfd
+// @Produce json
+// @Param image formData file true "image file"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} storage.PresignedPostRequest
+// @Failure 401 {object} exception.ErrorResponse
+// @Failure 403 {object} exception.ErrorResponse
+// @Failure 404 {object} exception.ErrorResponse
+// @Failure 500 {object} exception.ErrorResponse
+// @Router /v1/profile/image-presigned-url [post]
+func (h *ProfileHandler) GenerateUploadPresignedURL(ctx *gin.Context) {
+	authenticatedUser, err := security.GetUserFromContext(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("user not found in context")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, exception.GetErrorResponse(exception.ErrUnauthorized, http.StatusUnauthorized))
+		return
+	}
+
+	log.Info().Msgf("generate upload presigned URL for user UUID %s", authenticatedUser.Uuid)
+	client, err := h.StorageService.GetS3Client(ctx, h.Config.AwsRegion)
+	if err != nil {
+		log.Error().Err(err).Msg("error loading config")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	file, err := ctx.FormFile("image")
+	if err != nil {
+		log.Error().Err(err).Msg("error retrieving the file")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	filename, err := getFileName(file, authenticatedUser.Uuid)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting file name")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, exception.GetErrorResponse(err, http.StatusBadRequest))
+		return
+	}
+
+	// Generate presigned URL
+	key := S3Dir + "/" + filename
+	log.Info().Msgf("generate upload presigned URL for key %s", key)
+	presignedPostRequest, err := h.StorageService.GenerateUploadPresignedURL(ctx, client, h.Config.AwsS3Bucket, key, 60)
+	if err != nil {
+		log.Error().Err(err).Msg("error generating presigned URL")
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, exception.GetErrorResponse(err, http.StatusInternalServerError))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, presignedPostRequest)
+}
+
 func getFileName(file *multipart.FileHeader, userUuid uuid.UUID) (string, error) {
 	ext, err := getFileExtension(file)
 	if err != nil {

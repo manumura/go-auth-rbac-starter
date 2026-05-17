@@ -95,6 +95,7 @@ func (server *HttpServer) SetupRouter(config config.Config, validate *validator.
 	authRoutes.PUT("/v1/profile", profileHandler.UpdateProfile)
 	authRoutes.PUT("/v1/profile/password", profileHandler.UpdatePassword)
 	authRoutes.PUT("/v1/profile/image", profileHandler.UpdateImage)
+	authRoutes.POST("/v1/profile/image-presigned-url", profileHandler.GenerateUploadPresignedURL)
 	authRoutes.DELETE("/v1/profile", profileHandler.DeleteProfile)
 
 	adminRoutes := router.Group(prefix).
